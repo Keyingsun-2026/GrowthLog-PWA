@@ -1,0 +1,2795 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Growth Log</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7A9E85">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Growth Log">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F8F5F0;
+  --card:#FFFFFF;
+  --accent:#7A9E85;
+  --accent-lt:#EAF2EC;
+  --warm:#F2E9DC;
+  --warm2:#C4A07A;
+  --text:#252525;
+  --mid:#555;
+  --muted:#999;
+  --border:#E6E2DB;
+  --gold:#C4973F;
+  --gold-lt:#FBF3E3;
+  --red:#D95C5C;
+  --red-lt:#FDEAEA;
+  --r:16px;
+  --sh:0 2px 18px rgba(0,0,0,.06);
+}
+html{overflow-x:hidden;max-width:100vw}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;min-height:100vh;line-height:1.6;overscroll-behavior:none;overflow-x:hidden}
+
+/* ── iOS PWA safe area ── */
+.bottom-nav{padding-bottom:env(safe-area-inset-bottom,0px)!important}
+.tab-page{top:env(safe-area-inset-top,0px)!important;bottom:0!important;padding-bottom:calc(62px + env(safe-area-inset-bottom,0px))}
+.view{top:0!important}
+.v-hdr{padding-top:max(14px,calc(env(safe-area-inset-top,0px) + 6px))!important}
+/* ── Touch: remove 300ms delay ── */
+button,.nav-tab,.p-card,.circle-card,.my-card,.rel-opt,.family-sub-opt,.pin-key,.s-item,.ft-btn,.feel-opt,.frag-toggle,.frag-add-btn,.add-btn,.circle-add,.back,.edit-btn,.sub-btn,.del-frag,.delete-btn,.pdf-sel-item,.pdf-sel-btn-sm,.confirm-cancel,.confirm-ok{touch-action:manipulation;-webkit-tap-highlight-color:rgba(0,0,0,0)}
+
+/* ── Header ── */
+.hdr{padding:24px 22px 14px;display:flex;align-items:flex-end;gap:10px}
+.hdr-logo{font-size:22px;font-weight:700;letter-spacing:2.5px}
+.hdr-sub{font-size:11px;color:var(--muted);letter-spacing:1.5px;padding-bottom:2px}
+
+/* ── Home ── */
+.home{padding:0 15px 90px;display:grid;grid-template-columns:200px 1fr;gap:14px;max-width:900px;margin:0 auto}
+@media(max-width:580px){.home{grid-template-columns:1fr}}
+.sec-label{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+
+/* ── My card ── */
+.my-card{background:var(--card);border-radius:var(--r);padding:24px 18px 20px;box-shadow:var(--sh);cursor:pointer;transition:transform .2s,box-shadow .2s;border:1.5px solid var(--border)}
+.my-card:hover{transform:translateY(-2px);box-shadow:0 6px 26px rgba(0,0,0,.09)}
+.my-ava{width:70px;height:70px;border-radius:50%;background:var(--warm);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden}
+.my-ava img,.p-ava img{width:100%;height:100%;object-fit:cover}
+.my-name{text-align:center;font-size:15px;font-weight:700;margin-bottom:2px}
+.my-bday{text-align:center;font-size:11px;color:var(--muted);margin-bottom:10px}
+.dm-pill{background:var(--gold-lt);color:var(--gold);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;display:inline-block;border:1px solid #E8D5A0}
+.dm-tags{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:8px}
+.dm-tag{background:var(--accent-lt);color:var(--accent);border-radius:20px;padding:2px 8px;font-size:10.5px}
+
+/* ── People list ── */
+.p-list{display:flex;flex-direction:column;gap:9px}
+.p-card{background:var(--card);border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh);display:flex;align-items:center;gap:13px;cursor:pointer;transition:transform .2s,box-shadow .2s;border:1.5px solid var(--border)}
+.p-card:hover{transform:translateX(3px);box-shadow:0 4px 22px rgba(0,0,0,.08)}
+.p-ava{width:46px;height:46px;border-radius:50%;background:var(--warm);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:19px;overflow:hidden}
+.p-info{flex:1;min-width:0}
+.p-name{font-size:14px;font-weight:600;margin-bottom:3px}
+.p-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.rel-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px}
+.rt-crush{background:#fde8f3;color:#c96090}
+.rt-idol{background:#f3e8fd;color:#9060c9}
+.rt-new{background:#e8f4fd;color:#5a9ec9}
+.rt-friend{background:var(--accent-lt);color:var(--accent)}
+.rt-lover{background:#fde8e8;color:#d06060}
+.rt-colleague{background:#f0edf8;color:#7b6db3}
+.rt-family{background:var(--warm);color:var(--warm2)}
+.p-dm{font-size:10.5px;color:var(--gold);font-weight:600;background:var(--gold-lt);padding:1px 7px;border-radius:10px}
+.p-arr{color:#ccc;font-size:18px}
+.add-btn{background:transparent;border:2px dashed var(--border);border-radius:var(--r);padding:14px;display:flex;align-items:center;justify-content:center;gap:7px;color:var(--muted);font-size:13px;cursor:pointer;transition:all .2s;width:100%;margin-top:8px}
+.add-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-lt)}
+.empty{text-align:center;padding:32px 16px;color:var(--muted)}
+.empty-ico{font-size:34px;margin-bottom:10px}
+.empty p{font-size:13px;line-height:1.8}
+
+/* ── Slide views ── */
+.view{position:fixed;inset:0;background:var(--bg);z-index:100;overflow-y:auto;overflow-x:hidden;transform:translateX(100%);transition:transform .32s cubic-bezier(.4,0,.2,1)}
+.view.open{transform:translateX(0)}
+.v-hdr{position:sticky;top:0;background:rgba(248,245,240,.94);backdrop-filter:blur(10px);z-index:10;padding:14px 18px 12px;display:flex;align-items:center;gap:11px;border-bottom:1px solid var(--border)}
+.back{width:36px;height:36px;border-radius:50%;background:var(--card);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:var(--sh);transition:background .2s;flex-shrink:0}
+.back:hover{background:var(--warm)}
+.v-title{font-size:16px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.edit-btn{padding:6px 14px;border-radius:20px;background:var(--accent-lt);color:var(--accent);border:none;font-size:13px;cursor:pointer;font-weight:600;white-space:nowrap}
+.v-body{padding:20px 18px 100px;max-width:600px;margin:0 auto}
+
+/* ── Profile hero ── */
+.p-hero{text-align:center;margin-bottom:22px}
+.ph-photo{width:88px;height:88px;border-radius:50%;background:var(--warm);margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:38px;overflow:hidden;cursor:pointer;position:relative;box-shadow:0 4px 16px rgba(0,0,0,.1)}
+.ph-photo img{width:100%;height:100%;object-fit:cover}
+.ph-overlay{position:absolute;inset:0;background:rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;opacity:0;transition:opacity .2s;border-radius:50%}
+.ph-photo:hover .ph-overlay{opacity:1}
+.ph-name{font-size:21px;font-weight:700;margin-bottom:3px}
+.ph-bday{font-size:12px;color:var(--muted);margin-bottom:8px}
+
+/* ── Analysis block ── */
+.analysis-block{background:var(--gold-lt);border:1.5px solid #E8D5A0;border-radius:var(--r);padding:0;margin-bottom:16px;overflow:hidden}
+.analysis-top{padding:18px 20px 14px;border-bottom:1px solid #E8D5A0}
+.dm-label{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--warm2);text-transform:uppercase;margin-bottom:6px}
+.dm-title{font-size:26px;font-weight:800;color:var(--gold);margin-bottom:2px}
+.dm-headline{font-size:13px;color:var(--mid);font-style:italic}
+.analysis-section{padding:14px 20px;border-bottom:1px solid #EDE0CA}
+.analysis-section:last-child{border-bottom:none}
+.sec-header{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--warm2);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.sec-header .tag{background:rgba(196,151,63,.15);color:var(--gold);padding:2px 8px;border-radius:8px;font-size:10px;font-weight:600}
+.trait-item{margin-bottom:12px}
+.trait-item:last-child{margin-bottom:0}
+.trait-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
+.trait-desc{font-size:13px;color:var(--mid);line-height:1.78}
+.tg-box{background:rgba(255,255,255,.6);border-radius:10px;padding:12px 14px}
+.tg-label{font-size:11px;font-weight:700;color:var(--gold);margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.tg-pillar{font-size:10.5px;color:var(--warm2);background:rgba(196,151,63,.12);padding:1px 7px;border-radius:8px;margin-left:4px}
+.tg-desc{font-size:13px;color:var(--mid);line-height:1.78}
+.tips-box{background:var(--accent-lt);border-radius:10px;padding:12px 14px}
+.tips-text{font-size:13px;color:var(--mid);line-height:1.78}
+.no-bday-hint{padding:24px 20px;text-align:center;color:var(--muted);font-size:13px;line-height:1.8}
+
+/* ── Compat block ── */
+.compat-block{background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);padding:16px 20px;margin-bottom:16px}
+.compat-block h3{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:13px}
+.adv-item{margin-bottom:12px}
+.adv-item:last-child{margin-bottom:0}
+.adv-label{font-size:10.5px;font-weight:700;color:var(--accent);margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.adv-text{font-size:13px;color:var(--mid);line-height:1.78;background:var(--bg);border-radius:9px;padding:10px 13px}
+.compat-hint{text-align:center;color:var(--muted);font-size:13px;padding:8px 0;line-height:1.8}
+
+/* ── Fragments toggle ── */
+.frag-toggle{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:14px 20px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);margin-bottom:10px;transition:background .2s}
+.frag-toggle:hover{background:var(--bg)}
+.frag-toggle-label{font-size:13px;font-weight:600;color:var(--text)}
+.frag-toggle-meta{font-size:12px;color:var(--muted)}
+.frag-toggle-arr{font-size:16px;color:var(--muted);transition:transform .2s}
+.frag-toggle-arr.open{transform:rotate(90deg)}
+.frag-list{display:none}
+.frag-list.open{display:block;margin-bottom:16px}
+.frag{margin-bottom:11px;position:relative}
+.frag-bubble{background:var(--card);border-radius:10px 10px 10px 3px;padding:12px 15px;border:1.5px solid var(--border);font-size:13px;line-height:1.75;color:var(--text)}
+.frag-bubble.feel{background:var(--accent-lt);border-color:transparent}
+.frag-bubble img{width:100%;border-radius:8px;display:block}
+.frag-date{font-size:10px;color:var(--muted);margin-top:4px;padding-left:3px}
+.feel-ico{font-size:21px;margin-bottom:4px;display:block}
+.feel-txt{font-size:13px;color:var(--accent)}
+.del-frag{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.1);border:none;cursor:pointer;font-size:11px;color:var(--muted);display:flex;align-items:center;justify-content:center;opacity:.7;touch-action:manipulation}
+
+.add-first{border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;color:var(--muted);font-size:13px;line-height:1.8}
+.frag-add-btn{display:flex;align-items:center;gap:7px;justify-content:center;padding:11px;border:2px dashed var(--border);border-radius:12px;background:transparent;color:var(--muted);font-size:13px;cursor:pointer;transition:all .2s;width:100%;margin-bottom:16px}
+.frag-add-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-lt)}
+
+/* ── Delete btn ── */
+.delete-zone{margin-top:8px;padding-top:16px;border-top:1px solid var(--border)}
+.delete-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;background:var(--red-lt);color:var(--red);border:1.5px solid #F0C0C0;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.delete-btn:hover{background:#f8d5d5;border-color:var(--red)}
+
+/* ── FAB ── */
+.fab{position:fixed;bottom:26px;right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 18px rgba(122,158,133,.45);display:flex;align-items:center;justify-content:center;z-index:200;transition:transform .2s,box-shadow .2s}
+.fab:hover{transform:scale(1.08);box-shadow:0 6px 24px rgba(122,158,133,.55)}
+
+/* ── Modals ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:300;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal{background:var(--card);border-radius:22px 22px 0 0;padding:20px 18px 42px;width:100%;max-width:600px;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:88vh;overflow-y:auto}
+.modal-bg.open .modal{transform:translateY(0)}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 14px}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:18px;text-align:center}
+
+/* Forms */
+.fg{margin-bottom:14px}
+.fg label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;margin-bottom:5px;display:block;text-transform:uppercase}
+.fi,.ft{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:11px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--text);outline:none;transition:border-color .2s}
+.fi:focus,.ft:focus{border-color:var(--accent)}
+.ft{resize:vertical;min-height:86px}
+
+.rel-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:5px}
+.rel-opt{padding:8px 4px;border:2px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;font-size:12px;transition:all .15s;background:var(--bg);line-height:1.5}
+.rel-opt.sel{border-color:var(--accent);background:var(--accent-lt);color:var(--accent);font-weight:700}
+.rel-opt.family-parent{border-color:var(--warm2)!important;background:var(--warm)!important;color:var(--warm2)!important}
+.family-sub{display:none;margin-top:10px;border-top:1px dashed var(--border);padding-top:10px}
+.family-sub.open{display:block}
+.family-sub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;max-height:160px;overflow-y:auto;padding:2px 4px 4px 2px;scrollbar-width:thin;scrollbar-color:var(--warm2) var(--border)}
+.family-sub-grid::-webkit-scrollbar{width:5px}
+.family-sub-grid::-webkit-scrollbar-track{background:var(--border);border-radius:3px}
+.family-sub-grid::-webkit-scrollbar-thumb{background:var(--warm2);border-radius:3px}
+.family-sub-opt{padding:8px 6px;border:2px solid var(--border);border-radius:10px;cursor:pointer;font-size:12.5px;transition:all .15s;background:var(--bg);text-align:center;line-height:1.4}
+.family-sub-opt.sel{border-color:var(--warm2);background:var(--warm);color:var(--warm2);font-weight:700}
+.family-custom-wrap{display:none;margin-top:8px}
+.family-custom-wrap.open{display:block}
+
+/* ── PDF Selector ── */
+.pdf-sel-list{max-height:52vh;overflow-y:auto;margin:0 -4px;padding:0 4px}
+.pdf-sel-item{display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--card);border-radius:12px;margin-bottom:7px;border:1.5px solid var(--border);cursor:pointer;transition:all .15s;user-select:none}
+.pdf-sel-item.checked{border-color:var(--accent);background:var(--accent-lt)}
+.pdf-sel-ava{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;flex-shrink:0;overflow:hidden}
+.pdf-sel-ava img{width:100%;height:100%;object-fit:cover}
+.pdf-sel-info{flex:1;min-width:0}
+.pdf-sel-name{font-size:14px;font-weight:600}
+.pdf-sel-sub{font-size:11.5px;color:var(--muted);margin-top:1px}
+.pdf-sel-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .15s;background:white}
+.pdf-sel-item.checked .pdf-sel-check{border-color:var(--accent);background:var(--accent);color:white}
+.pdf-sel-actions{display:flex;gap:8px;margin-bottom:14px}
+.pdf-sel-btn-sm{flex:1;padding:8px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);color:var(--mid);font-size:13px;cursor:pointer;transition:background .15s}
+.pdf-sel-btn-sm:hover{background:var(--border)}
+
+/* ── Settings ── */
+.s-section{padding:0 16px;margin-bottom:22px}
+.s-title{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;padding-left:2px}
+.s-item{background:var(--card);border-radius:12px;padding:13px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;border:1.5px solid var(--border);cursor:pointer;transition:background .15s}
+.s-item:hover{background:var(--bg)}
+.s-item.s-danger .s-item-label{color:var(--red)}
+.s-item-left{display:flex;align-items:center;gap:12px}
+.s-icon{width:34px;height:34px;border-radius:9px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.s-ava{width:34px;height:34px;border-radius:50%;background:var(--warm);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--accent);flex-shrink:0}
+.s-ava img{width:100%;height:100%;object-fit:cover}
+.s-item-label{font-size:14px;font-weight:500;color:var(--text)}
+.s-item-desc{font-size:11.5px;color:var(--muted);margin-top:1px}
+.s-arr{color:var(--muted);font-size:17px}
+.s-toggle{width:42px;height:24px;border-radius:12px;background:var(--border);position:relative;flex-shrink:0;transition:background .2s}
+.s-toggle.on{background:var(--accent)}
+.s-toggle::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:white;top:3px;left:3px;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.s-toggle.on::after{transform:translateX(18px)}
+.s-about{background:var(--card);border-radius:12px;padding:16px 14px;border:1.5px solid var(--border);text-align:center}
+.s-about-name{font-size:15px;font-weight:700;margin-bottom:4px}
+.s-about-ver{font-size:12px;color:var(--muted)}
+
+/* ── PIN Screen ── */
+.pin-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px}
+.pin-logo{font-size:22px;font-weight:700;letter-spacing:2px;margin-bottom:6px}
+.pin-sub{font-size:13px;color:var(--muted);margin-bottom:28px}
+.pin-dots{display:flex;gap:14px;margin-bottom:10px}
+.pin-dot{width:13px;height:13px;border-radius:50%;border:2px solid var(--accent);background:transparent;transition:background .15s}
+.pin-dot.filled{background:var(--accent)}
+.pin-err{font-size:12px;color:var(--red);height:18px;margin-bottom:14px;text-align:center}
+.pin-pad{display:grid;grid-template-columns:repeat(3,70px);gap:12px;margin:6px auto 0;width:fit-content}
+.pin-key{width:70px;height:70px;border-radius:50%;background:var(--card);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;cursor:pointer;box-shadow:var(--sh);transition:background .12s;user-select:none}
+.pin-key:active{background:var(--accent-lt)}
+.pin-key.empty{background:transparent;border:none;box-shadow:none;cursor:default}
+.pin-key.del{font-size:18px}
+.rel-section-lbl{font-size:9.5px;font-weight:700;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin:8px 0 4px}
+/* Tagline on person cards */
+.p-tagline{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Vibe section */
+.vibe-list{display:flex;flex-direction:column;gap:8px}
+.vibe-item{background:rgba(255,255,255,.55);border-radius:9px;padding:9px 13px;display:flex;align-items:baseline;gap:8px}
+.vibe-tag{font-size:11.5px;font-weight:700;color:var(--text);white-space:nowrap;min-width:60px}
+.vibe-dot{color:var(--warm2);font-size:13px;flex-shrink:0}
+.vibe-desc{font-size:12.5px;color:var(--mid);line-height:1.6}
+
+.frag-types{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:16px}
+.ft-btn{padding:12px 7px;border:2px solid var(--border);border-radius:12px;text-align:center;cursor:pointer;transition:all .18s;background:var(--bg)}
+.ft-btn.sel{border-color:var(--accent);background:var(--accent-lt)}
+.ft-btn .ico{font-size:20px;display:block;margin-bottom:3px}
+.ft-btn .lbl{font-size:11.5px;color:var(--mid)}
+
+.feel-pick{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.feel-opt{width:40px;height:40px;border-radius:50%;background:var(--bg);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:19px;cursor:pointer;transition:all .15s}
+.feel-opt.sel{border-color:var(--accent);background:var(--accent-lt);transform:scale(1.1)}
+
+.img-area{border:2px dashed var(--border);border-radius:12px;padding:24px;text-align:center;cursor:pointer;color:var(--muted);font-size:13px;transition:all .2s}
+.img-area:hover{border-color:var(--accent);color:var(--accent)}
+.img-area .ico{font-size:26px;margin-bottom:6px;display:block}
+
+.sub-btn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:5px;transition:background .2s,transform .15s}
+.sub-btn:hover{background:#6a8c74;transform:translateY(-1px)}
+.sub-btn:active{transform:translateY(0)}
+
+/* Toast */
+.toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(14px);background:rgba(37,37,37,.92);color:#fff;padding:9px 20px;border-radius:20px;font-size:13px;opacity:0;transition:all .28s;z-index:500;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Confirm overlay */
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;padding:20px}
+.confirm-overlay.open{opacity:1;pointer-events:all}
+.confirm-box{background:var(--card);border-radius:20px;padding:26px 24px;width:100%;max-width:340px;text-align:center}
+.confirm-box h4{font-size:16px;font-weight:700;margin-bottom:8px}
+.confirm-box p{font-size:13px;color:var(--mid);line-height:1.7;margin-bottom:20px}
+.confirm-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.confirm-cancel{padding:12px;border:1.5px solid var(--border);border-radius:12px;background:var(--bg);color:var(--mid);font-size:14px;cursor:pointer;font-weight:600;transition:background .2s}
+.confirm-cancel:hover{background:var(--border)}
+.confirm-ok{padding:12px;border:none;border-radius:12px;background:var(--red);color:#fff;font-size:14px;cursor:pointer;font-weight:700;transition:background .2s}
+.confirm-ok:hover{background:#c44}
+
+.divider{height:1px;background:var(--border);margin:14px 0}
+
+/* ── Bottom Nav ── */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 0 13px;cursor:pointer;color:var(--muted);transition:color .2s;gap:3px;user-select:none}
+.nav-tab.active{color:var(--accent)}
+.nav-ico{font-size:22px;line-height:1}
+.nav-lbl{font-size:10px;font-weight:600;letter-spacing:.5px}
+
+/* ── Tab Pages ── */
+.tab-page{display:none;position:fixed;top:0;left:0;right:0;bottom:60px;overflow-y:auto;overflow-x:hidden;background:var(--bg)}
+.tab-page.active{display:block}
+.page-hdr{position:sticky;top:0;background:rgba(248,245,240,.95);backdrop-filter:blur(10px);padding:18px 20px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);z-index:10}
+.page-hdr-title{font-size:18px;font-weight:700;letter-spacing:.5px}
+
+/* ── Circle Grid ── */
+.circle-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 16px 20px;width:100%}
+.circle-card{background:var(--card);border-radius:var(--r);padding:18px 12px 14px;text-align:center;cursor:pointer;border:1.5px solid var(--border);box-shadow:var(--sh);transition:transform .2s,box-shadow .2s;min-width:0;overflow:hidden}
+.circle-card:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.09)}
+.circle-ava{width:62px;height:62px;border-radius:50%;background:var(--warm);margin:0 auto 10px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.circle-ava img{width:100%;height:100%;object-fit:cover}
+.circle-name{font-size:14px;font-weight:700;margin-bottom:3px}
+.circle-tagline{font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.4;word-break:break-all;overflow:hidden}
+.circle-tags{display:flex;gap:4px;justify-content:center;flex-wrap:wrap}
+.circle-add{grid-column:1/-1;border:2px dashed var(--border);border-radius:var(--r);padding:18px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:13px;cursor:pointer;background:transparent;transition:all .2s;width:100%}
+.circle-add:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-lt)}
+.gender-row{display:flex;gap:8px;margin-top:5px}
+.gender-opt{flex:1;padding:9px 6px;border:2px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;font-size:13px;transition:all .15s;background:var(--bg)}
+.gender-opt.sel{border-color:var(--accent);background:var(--accent-lt);color:var(--accent);font-weight:700}
+.gender-badge{font-size:10px;color:var(--muted);background:var(--bg);border:1px solid var(--border);padding:1px 7px;border-radius:10px;margin-left:4px}
+
+/* ── Responsive fixes ── */
+img{max-width:100%;height:auto}
+input,textarea{max-width:100%;box-sizing:border-box}
+@media(max-width:400px){
+  .pdf-row2{grid-template-columns:1fr}
+  .pin-pad{grid-template-columns:repeat(3,64px)}
+  .pin-key{width:64px;height:64px}
+  .feel-pick{gap:5px}
+  .feel-opt{width:36px;height:36px;font-size:17px}
+}
+
+/* ── 更新提示横幅 ── */
+.update-banner{
+  position:fixed;top:-70px;left:50%;transform:translateX(-50%);
+  background:var(--accent);color:#fff;
+  padding:11px 16px 11px 20px;border-radius:24px;
+  font-size:14px;font-weight:600;
+  z-index:600;box-shadow:0 4px 18px rgba(122,158,133,.5);
+  transition:top .4s cubic-bezier(.4,0,.2,1);
+  white-space:nowrap;display:flex;align-items:center;gap:10px;
+}
+.update-banner.show{top:calc(env(safe-area-inset-top,0px) + 16px)}
+.update-banner-close{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.25);border:none;color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;touch-action:manipulation;padding:0}
+
+/* ── Date Picker ── */
+.date-display{cursor:pointer;display:flex;align-items:center;color:var(--muted);min-height:44px}
+.date-display.has-val{color:var(--text)}
+.dp-wrap{position:relative;height:220px;display:flex;overflow:hidden;margin:12px -4px 0;border-radius:12px;background:var(--bg)}
+.dp-col{flex:1;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;padding:88px 0;text-align:center;scrollbar-width:none}
+.dp-col::-webkit-scrollbar{display:none}
+.dp-item{height:44px;line-height:44px;font-size:16px;color:var(--muted);scroll-snap-align:center;user-select:none}
+.dp-selector{position:absolute;top:50%;left:8px;right:8px;height:44px;transform:translateY(-50%);border-top:1.5px solid var(--accent);border-bottom:1.5px solid var(--accent);pointer-events:none;border-radius:4px}
+.dp-fade{position:absolute;left:0;right:0;height:90px;pointer-events:none;z-index:1}
+.dp-fade-top{top:0;background:linear-gradient(to bottom,rgba(248,245,240,.97),transparent)}
+.dp-fade-bot{bottom:0;background:linear-gradient(to top,rgba(248,245,240,.97),transparent)}
+
+/* ── Auth Screen ── */
+#appRoot{display:none}
+.auth-screen{position:fixed;inset:0;background:var(--bg);z-index:999;display:none;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px}
+.auth-logo{font-size:26px;font-weight:700;letter-spacing:2.5px;margin-bottom:6px;color:var(--text)}
+.auth-tagline{font-size:13px;color:var(--muted);margin-bottom:36px;letter-spacing:1px}
+.auth-card{width:100%;max-width:360px;background:var(--card);border-radius:20px;padding:28px 24px;box-shadow:0 4px 24px rgba(0,0,0,.08);border:1.5px solid var(--border)}
+.auth-mode-tabs{display:flex;margin-bottom:24px;background:var(--bg);border-radius:12px;padding:3px}
+.auth-mode-tab{flex:1;text-align:center;padding:8px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;color:var(--muted);transition:all .2s;touch-action:manipulation}
+.auth-mode-tab.active{background:var(--card);color:var(--text);box-shadow:0 1px 6px rgba(0,0,0,.08)}
+.auth-err{font-size:12px;color:var(--red);min-height:18px;margin-bottom:8px;text-align:center}
+.auth-ok{font-size:12px;color:var(--accent);min-height:18px;margin-bottom:8px;text-align:center}
+
+/* ── Loading overlay ── */
+.loading-overlay{position:fixed;inset:0;background:rgba(248,245,240,.92);z-index:900;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.loading-spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;color:var(--muted)}
+
+/* ── Person Tabs ── */
+.person-tab-bar{display:flex;background:var(--bg);border-radius:20px;padding:2px;gap:2px;flex:1;margin:0 8px}
+.person-tab{flex:1;text-align:center;padding:5px 6px;border-radius:18px;font-size:11.5px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .2s;white-space:nowrap;touch-action:manipulation;user-select:none}
+.person-tab.active{background:var(--card);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+
+/* ── Impression Section ── */
+.impr-input-wrap{background:var(--card);border-radius:var(--r);padding:16px;margin-bottom:14px;border:1.5px solid var(--border)}
+.impr-input-label{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+.impr-entry{margin-bottom:16px}
+.impr-user-bubble{background:var(--warm);border-radius:10px 10px 3px 10px;padding:11px 14px;font-size:13px;line-height:1.75;color:var(--text);margin-bottom:8px}
+.impr-response-wrap{background:var(--accent-lt);border-radius:3px 10px 10px 10px;padding:11px 14px;border-left:3px solid var(--accent)}
+.impr-response-label{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--accent);margin-bottom:5px}
+.impr-response-text{font-size:13px;color:var(--mid);line-height:1.78}
+.impr-date{font-size:10px;color:var(--muted);margin-top:4px;padding-left:3px}
+.impr-empty{text-align:center;padding:32px 16px;color:var(--muted);font-size:13px;line-height:1.9}
+.del-impr{float:right;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.07);border:none;cursor:pointer;font-size:10px;color:var(--muted);display:flex;align-items:center;justify-content:center;margin-left:8px;flex-shrink:0;touch-action:manipulation}
+
+/* ── Lightbox ── */
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:800;display:none;align-items:center;justify-content:center;touch-action:manipulation}
+.lightbox.open{display:flex}
+.lightbox img{max-width:95vw;max-height:88vh;object-fit:contain;border-radius:8px}
+.lightbox-close{position:absolute;top:calc(env(safe-area-inset-top,0px)+16px);right:16px;color:#fff;font-size:20px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.2);border-radius:50%;cursor:pointer;touch-action:manipulation}
+/* ── Image fragment ── */
+.frag-img-wrap{position:relative;border-radius:10px;overflow:hidden;cursor:pointer}
+.frag-img-thumb{width:100%;max-height:140px;object-fit:cover;display:block;border-radius:10px}
+.frag-img-expand{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.45);color:#fff;font-size:11px;padding:3px 8px;border-radius:8px;pointer-events:none}
+
+/* ── PDF 内嵌查看 ── */
+.pdf-view{position:fixed;inset:0;z-index:850;background:#f0f0f0;flex-direction:column;display:none}
+.pdf-view.open{display:flex}
+.pdf-view-hdr{background:var(--card);padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);flex-shrink:0;padding-top:max(12px,calc(env(safe-area-inset-top,0px)+8px))}
+.pdf-view-hdr .back{flex-shrink:0}
+.pdf-view-title{flex:1;font-size:15px;font-weight:600}
+.pdf-print-btn{padding:6px 14px;border-radius:20px;background:var(--accent);color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation}
+.pdf-frame{flex:1;border:none;width:100%}
+</style>
+</head>
+<body>
+
+<!-- ═══ AUTH SCREEN ═══ -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-logo">🪴 Growth Log</div>
+  <div class="auth-tagline">记录成长，珍惜关系</div>
+  <div class="auth-card">
+    <div class="auth-mode-tabs">
+      <div class="auth-mode-tab active" id="tabLogin" onclick="setAuthMode('login')">登录</div>
+      <div class="auth-mode-tab" id="tabRegister" onclick="setAuthMode('register')">注册</div>
+    </div>
+    <form id="authForm" onsubmit="event.preventDefault();handleAuth()" autocomplete="on">
+      <div class="fg"><label>邮箱</label><input class="fi" type="email" id="authEmail" name="email" placeholder="your@email.com" autocomplete="email"></div>
+      <div class="fg"><label>密码</label><input class="fi" type="password" id="authPassword" name="password" placeholder="至少 6 位" autocomplete="current-password"></div>
+      <div class="auth-err" id="authErr"></div>
+      <button class="sub-btn" id="authBtn" type="submit" style="margin-top:0">登录</button>
+    </form>
+  </div>
+</div>
+
+<!-- ═══ LOADING ═══ -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">加载中...</div>
+</div>
+
+<!-- ═══ APP ROOT ═══ -->
+<div id="appRoot">
+<!-- ═══ TAB: 我的档案 ═══ -->
+<div class="tab-page active" id="tabProfile">
+  <div class="page-hdr">
+    <span class="page-hdr-title">我的档案</span>
+    <button class="edit-btn" onclick="openMyProfile()">编辑</button>
+  </div>
+  <div id="profileContent"></div>
+</div>
+
+<!-- ═══ TAB: 我的外圈 ═══ -->
+<div class="tab-page" id="tabCircle">
+  <div class="page-hdr">
+    <span class="page-hdr-title">我的外圈</span>
+    <button class="edit-btn" onclick="openAddPerson()">＋ 添加</button>
+  </div>
+  <div id="circleContent"></div>
+</div>
+
+<!-- ═══ TAB: 设置 ═══ -->
+<div class="tab-page" id="tabSettings">
+  <div class="page-hdr">
+    <span class="page-hdr-title">设置</span>
+  </div>
+  <div id="settingsContent" style="padding-top:20px;padding-bottom:80px"></div>
+</div>
+
+<!-- ═══ PIN LOCK SCREEN ═══ -->
+<div class="pin-screen" id="pinScreen" style="display:none">
+  <div class="pin-logo">Growth Log</div>
+  <div class="pin-sub" id="pinSubtitle">请输入访问密码</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+  </div>
+  <div class="pin-err" id="pinErr"></div>
+  <div class="pin-pad">
+    <div class="pin-key" onclick="enterPin('1')">1</div>
+    <div class="pin-key" onclick="enterPin('2')">2</div>
+    <div class="pin-key" onclick="enterPin('3')">3</div>
+    <div class="pin-key" onclick="enterPin('4')">4</div>
+    <div class="pin-key" onclick="enterPin('5')">5</div>
+    <div class="pin-key" onclick="enterPin('6')">6</div>
+    <div class="pin-key" onclick="enterPin('7')">7</div>
+    <div class="pin-key" onclick="enterPin('8')">8</div>
+    <div class="pin-key" onclick="enterPin('9')">9</div>
+    <div class="pin-key empty"></div>
+    <div class="pin-key" onclick="enterPin('0')">0</div>
+    <div class="pin-key del" onclick="deletePin()">⌫</div>
+  </div>
+</div>
+
+<!-- ═══ PIN SETUP MODAL ═══ -->
+<div class="modal-bg" id="mPin" onclick="bgClose('mPin',event)">
+  <div class="modal" style="text-align:center">
+    <div class="modal-handle"></div>
+    <h3 id="pinSetupTitle">设置访问密码</h3>
+    <div class="pin-sub" id="pinSetupSub">请输入 4 位数字密码</div>
+    <div class="pin-dots" style="justify-content:center;margin-bottom:8px">
+      <div class="pin-dot" id="spd0"></div>
+      <div class="pin-dot" id="spd1"></div>
+      <div class="pin-dot" id="spd2"></div>
+      <div class="pin-dot" id="spd3"></div>
+    </div>
+    <div class="pin-err" id="pinSetupErr"></div>
+    <div class="pin-pad">
+      <div class="pin-key" onclick="enterSetupPin('1')">1</div>
+      <div class="pin-key" onclick="enterSetupPin('2')">2</div>
+      <div class="pin-key" onclick="enterSetupPin('3')">3</div>
+      <div class="pin-key" onclick="enterSetupPin('4')">4</div>
+      <div class="pin-key" onclick="enterSetupPin('5')">5</div>
+      <div class="pin-key" onclick="enterSetupPin('6')">6</div>
+      <div class="pin-key" onclick="enterSetupPin('7')">7</div>
+      <div class="pin-key" onclick="enterSetupPin('8')">8</div>
+      <div class="pin-key" onclick="enterSetupPin('9')">9</div>
+      <div class="pin-key empty"></div>
+      <div class="pin-key" onclick="enterSetupPin('0')">0</div>
+      <div class="pin-key del" onclick="deleteSetupPin()">⌫</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PDF SELECT MODAL ═══ -->
+<div class="modal-bg" id="mPdfSel" onclick="bgClose('mPdfSel',event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>选择要导出的档案</h3>
+    <div class="pdf-sel-actions">
+      <button class="pdf-sel-btn-sm" onclick="pdfSelAll(true)">全选</button>
+      <button class="pdf-sel-btn-sm" onclick="pdfSelAll(false)">取消全选</button>
+    </div>
+    <div class="pdf-sel-list" id="pdfSelList"></div>
+    <button class="sub-btn" onclick="exportSelectedPDF()" style="margin-top:12px">导出所选为 PDF</button>
+  </div>
+</div>
+
+<!-- ═══ GENERAL CONFIRM ═══ -->
+<div class="confirm-overlay" id="confirmGeneral" onclick="if(event.target===this)cancelConfirm()">
+  <div class="confirm-box">
+    <h4 id="confirmMsg">确认删除？</h4>
+    <p style="font-size:13px;color:var(--mid);line-height:1.7;margin-bottom:20px">此操作无法撤销。</p>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="cancelConfirm()">取消</button>
+      <button class="confirm-ok" onclick="doConfirm()">删除</button>
+    </div>
+  </div>
+</div>
+<!-- ═══ CLEAR DATA CONFIRM ═══ -->
+<div class="confirm-overlay" id="confirmClear" onclick="if(event.target===this)document.getElementById('confirmClear').classList.remove('open')">
+  <div class="confirm-box">
+    <h4>清除所有数据？</h4>
+    <p>所有档案、记录和分析将永久删除，无法恢复。</p>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="document.getElementById('confirmClear').classList.remove('open')">取消</button>
+      <button class="confirm-ok" onclick="confirmClearData()">清除</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Bottom Nav ═══ -->
+<nav class="bottom-nav">
+  <div class="nav-tab active" id="navProfile" onclick="switchTab('profile')">
+    <div class="nav-ico">+</div>
+    <div class="nav-lbl">我的档案</div>
+  </div>
+  <div class="nav-tab" id="navCircle" onclick="switchTab('circle')">
+    <div class="nav-ico">🌐</div>
+    <div class="nav-lbl">我的外圈</div>
+  </div>
+  <div class="nav-tab" id="navSettings" onclick="switchTab('settings')">
+    <div class="nav-ico">⚙️</div>
+    <div class="nav-lbl">设置</div>
+  </div>
+</nav>
+
+<!-- ═══ MY PROFILE VIEW ═══ -->
+<div class="view" id="vMe">
+  <div class="v-hdr">
+    <button class="back" onclick="closeView('vMe')">←</button>
+    <div class="v-title">我的档案</div>
+    <button class="edit-btn" onclick="saveMe()">保存</button>
+  </div>
+  <div class="v-body">
+    <div class="p-hero">
+      <div class="ph-photo" onclick="document.getElementById('fMe').click()">
+        <span id="mePhotoInner">🪴</span>
+        <div class="ph-overlay">📷</div>
+      </div>
+    </div>
+    <div class="fg"><label>名字</label><input class="fi" id="meName" placeholder="你叫什么"></div>
+    <div class="fg">
+      <label>性别</label>
+      <div class="gender-row" id="meGenderRow">
+        <div class="gender-opt sel" data-v="女" onclick="pickGender('me',this)">👩 女</div>
+        <div class="gender-opt" data-v="男" onclick="pickGender('me',this)">👨 男</div>
+        <div class="gender-opt" data-v="" onclick="pickGender('me',this)">不设置</div>
+      </div>
+    </div>
+    <div class="fg"><label>生日</label><div class="fi date-display" id="meBdayDisp" onclick="openDatePicker('meBday')">选择日期</div><input type="hidden" id="meBday"></div>
+    <div id="meBzBlock"></div>
+  </div>
+</div>
+
+<!-- ═══ PERSON DETAIL VIEW ═══ -->
+<div class="view" id="vPerson">
+  <div class="v-hdr" style="gap:4px;padding:10px 12px">
+    <button class="back" onclick="closeView('vPerson')">←</button>
+    <div class="person-tab-bar">
+      <div class="person-tab active" id="ptab-analysis" onclick="switchPersonTab('analysis')">日主分析</div>
+      <div class="person-tab" id="ptab-feeling" onclick="switchPersonTab('feeling')">我感觉Ta</div>
+      <div class="person-tab" id="ptab-frags" onclick="switchPersonTab('frags')">相处碎片</div>
+    </div>
+    <button class="edit-btn" onclick="openEditPerson()">编辑</button>
+  </div>
+  <div class="v-body" id="vPersonBody"></div>
+  <button class="fab" onclick="openAddFrag()" title="添加记录">＋</button>
+</div>
+
+<!-- ═══ ADD/EDIT PERSON MODAL ═══ -->
+<div class="modal-bg" id="mPerson" onclick="bgClose('mPerson',event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3 id="mPersonTitle">添加新的人</h3>
+    <div style="text-align:center;margin-bottom:16px">
+      <div class="ph-photo" style="width:78px;height:78px;font-size:32px;margin:0 auto" onclick="document.getElementById('fNew').click()">
+        <span id="newPhotoInner" style="font-size:28px;color:var(--muted)">+</span>
+        <div class="ph-overlay">📷</div>
+      </div>
+    </div>
+    <div class="fg"><label>名字</label><input class="fi" id="newName" placeholder="TA 叫什么"></div>
+    <div class="fg">
+      <label>性别</label>
+      <div class="gender-row" id="newGenderRow">
+        <div class="gender-opt sel" data-v="女" onclick="pickGender('new',this)">👩 女</div>
+        <div class="gender-opt" data-v="男" onclick="pickGender('new',this)">👨 男</div>
+        <div class="gender-opt" data-v="" onclick="pickGender('new',this)">不设置</div>
+      </div>
+    </div>
+    <div class="fg"><label>生日</label><div class="fi date-display" id="newBdayDisp" onclick="openDatePicker('newBday')">选择日期</div><input type="hidden" id="newBday"></div>
+    <div class="fg">
+      <label>关系</label>
+      <div class="rel-grid" id="relMainGrid">
+        <div class="rel-opt sel" data-v="有好感的人" onclick="pickRel(this)">💗<br>有好感的人</div>
+        <div class="rel-opt" data-v="爱豆" onclick="pickRel(this)">✨<br>爱豆</div>
+        <div class="rel-opt" data-v="新朋友" onclick="pickRel(this)">🌱<br>新朋友</div>
+        <div class="rel-opt" data-v="朋友" onclick="pickRel(this)">🤝<br>朋友</div>
+        <div class="rel-opt" data-v="恋人" onclick="pickRel(this)">💑<br>恋人</div>
+        <div class="rel-opt" data-v="同事" onclick="pickRel(this)">💼<br>同事</div>
+        <div class="rel-opt" id="familyMainOpt" data-v="家人" onclick="pickRel(this,true)">🏡<br>家人</div>
+        <div class="rel-opt" style="opacity:0;pointer-events:none"></div>
+      </div>
+      <div class="family-sub" id="familySub">
+        <div class="rel-section-lbl">具体是谁？</div>
+        <div class="family-sub-grid">
+          <div class="family-sub-opt" data-v="爸爸" onclick="pickFamilySub(this)">爸爸</div>
+          <div class="family-sub-opt" data-v="妈妈" onclick="pickFamilySub(this)">妈妈</div>
+          <div class="family-sub-opt" data-v="爷爷" onclick="pickFamilySub(this)">爷爷</div>
+          <div class="family-sub-opt" data-v="奶奶" onclick="pickFamilySub(this)">奶奶</div>
+          <div class="family-sub-opt" data-v="姥爷" onclick="pickFamilySub(this)">姥爷</div>
+          <div class="family-sub-opt" data-v="姥姥" onclick="pickFamilySub(this)">姥姥</div>
+          <div class="family-sub-opt" data-v="哥哥" onclick="pickFamilySub(this)">哥哥</div>
+          <div class="family-sub-opt" data-v="姐姐" onclick="pickFamilySub(this)">姐姐</div>
+          <div class="family-sub-opt" data-v="弟弟" onclick="pickFamilySub(this)">弟弟</div>
+          <div class="family-sub-opt" data-v="妹妹" onclick="pickFamilySub(this)">妹妹</div>
+          <div class="family-sub-opt" data-v="__other__" onclick="pickFamilySub(this)">其他…</div>
+        </div>
+        <div class="family-custom-wrap" id="familyCustomWrap">
+          <input class="fi" id="familyCustomInput" placeholder="输入称谓，如：舅舅、外婆…" oninput="selRel=this.value.trim()||'家人'">
+        </div>
+      </div>
+    </div>
+    <button class="sub-btn" onclick="savePerson()">保存</button>
+  </div>
+</div>
+
+<!-- ═══ ADD FRAGMENT MODAL ═══ -->
+<div class="modal-bg" id="mFrag" onclick="bgClose('mFrag',event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>记录一个片段</h3>
+    <div class="frag-types">
+      <div class="ft-btn sel" data-t="text" onclick="pickFt(this)"><span class="ico">✍️</span><span class="lbl">文字</span></div>
+      <div class="ft-btn" data-t="image" onclick="pickFt(this)"><span class="ico">🖼️</span><span class="lbl">照片</span></div>
+      <div class="ft-btn" data-t="feeling" onclick="pickFt(this)"><span class="ico">💭</span><span class="lbl">感受</span></div>
+    </div>
+    <div id="ftText"><textarea class="ft" id="fragTxt" placeholder="写下你们之间的某个瞬间，或发生的事..."></textarea></div>
+    <div id="ftImg" style="display:none">
+      <div class="img-area" onclick="document.getElementById('fFragImg').click()"><span class="ico">📷</span>点击上传照片</div>
+      <div id="imgPrev" style="display:none;margin-top:10px"><img id="imgPrevEl" style="width:100%;border-radius:10px;max-height:200px;object-fit:cover"></div>
+    </div>
+    <div id="ftFeel" style="display:none">
+      <div class="feel-pick" id="feelPick">
+        <div class="feel-opt sel" data-e="😊" onclick="pickFeel(this)">😊</div>
+        <div class="feel-opt" data-e="🥰" onclick="pickFeel(this)">🥰</div>
+        <div class="feel-opt" data-e="😔" onclick="pickFeel(this)">😔</div>
+        <div class="feel-opt" data-e="😤" onclick="pickFeel(this)">😤</div>
+        <div class="feel-opt" data-e="🤔" onclick="pickFeel(this)">🤔</div>
+        <div class="feel-opt" data-e="😌" onclick="pickFeel(this)">😌</div>
+        <div class="feel-opt" data-e="💫" onclick="pickFeel(this)">💫</div>
+        <div class="feel-opt" data-e="🥺" onclick="pickFeel(this)">🥺</div>
+        <div class="feel-opt" data-e="😅" onclick="pickFeel(this)">😅</div>
+        <div class="feel-opt" data-e="🫂" onclick="pickFeel(this)">🫂</div>
+      </div>
+      <textarea class="ft" id="feelTxt" placeholder="此刻的感受..." style="min-height:70px"></textarea>
+    </div>
+    <button class="sub-btn" onclick="saveFrag()" style="margin-top:12px">记录下来</button>
+  </div>
+</div>
+
+<!-- ═══ CONFIRM DELETE ═══ -->
+<div class="confirm-overlay" id="confirmDel" onclick="if(event.target===this)closeConfirm()">
+  <div class="confirm-box">
+    <h4>删除此人的档案？</h4>
+    <p>所有相关记录和分析都会一起删除，无法恢复。</p>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="closeConfirm()">取消</button>
+      <button class="confirm-ok" onclick="confirmDelete()">删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden file inputs -->
+<input type="file" id="fImport" accept="application/json,.json" style="display:none" onchange="importData(event)">
+<input type="file" id="fMe" accept="image/*" style="display:none" onchange="handlePhoto(event,'me')">
+<input type="file" id="fNew" accept="image/*" style="display:none" onchange="handlePhoto(event,'new')">
+<input type="file" id="fPerson" accept="image/*" style="display:none" onchange="handlePhoto(event,'person')">
+<input type="file" id="fFragImg" accept="image/*" style="display:none" onchange="handleFragImg(event)">
+
+<div id="updateBanner" class="update-banner"><span>✨ 新版本已就绪，关闭后重新打开</span><button class="update-banner-close" onclick="document.getElementById('updateBanner').classList.remove('show')" aria-label="关闭">✕</button></div>
+
+<!-- ═══ DATE PICKER MODAL ═══ -->
+<div class="modal-bg" id="mDatePicker" onclick="bgClose('mDatePicker',event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>选择生日</h3>
+    <div class="dp-wrap">
+      <div class="dp-col" id="dpYear"></div>
+      <div class="dp-col" id="dpMonth"></div>
+      <div class="dp-col" id="dpDay"></div>
+      <div class="dp-fade dp-fade-top"></div>
+      <div class="dp-fade dp-fade-bot"></div>
+      <div class="dp-selector"></div>
+    </div>
+    <button class="sub-btn" onclick="confirmDatePicker()" style="margin-top:16px">确认</button>
+  </div>
+</div>
+<!-- ═══ PDF VIEW ═══ -->
+<div class="pdf-view" id="pdfView">
+  <div class="pdf-view-hdr">
+    <button class="back" onclick="closePdfView()">←</button>
+    <div class="pdf-view-title">档案预览</div>
+    <button class="pdf-print-btn" onclick="document.getElementById('pdfFrame').contentWindow.print()">保存 PDF</button>
+  </div>
+  <iframe id="pdfFrame" class="pdf-frame" src="about:blank"></iframe>
+</div>
+<!-- ═══ LIGHTBOX ═══ -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <div class="lightbox-close" onclick="closeLightbox()">✕</div>
+  <img id="lightboxImg" src="" alt="" onclick="event.stopPropagation()">
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════ SUPABASE 内嵌客户端（无外部 CDN 依赖）════════════
+const _SB_URL = 'https://wbfzafinvuxfyhycmpjr.supabase.co';
+const _SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndiZnphZmludnV4ZnloeWNtcGpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NzcyMTAsImV4cCI6MjA5NzE1MzIxMH0.MDfUOyRQKR6DDpNISFx2jodQ9cRdW60shvbkgPjpDhI';
+const _SB_SESSION_KEY = 'gl-sb-session';
+
+// IndexedDB 存 session（比 localStorage 稳定）
+const _idb = {
+  _open(){ return new Promise((res,rej)=>{ const r=indexedDB.open('gl-auth',1); r.onupgradeneeded=e=>e.target.result.createObjectStore('kv'); r.onsuccess=e=>res(e.target.result); r.onerror=rej; }); },
+  async get(k){ try{ const db=await this._open(); return await new Promise((res,rej)=>{ const r=db.transaction('kv').objectStore('kv').get(k); r.onsuccess=()=>res(r.result??null); r.onerror=()=>res(null); }); }catch{ return null; } },
+  async set(k,v){ try{ const db=await this._open(); await new Promise((res,rej)=>{ const tx=db.transaction('kv','readwrite'); tx.objectStore('kv').put(v,k); tx.oncomplete=res; tx.onerror=rej; }); }catch{} },
+  async del(k){ try{ const db=await this._open(); await new Promise((res,rej)=>{ const tx=db.transaction('kv','readwrite'); tx.objectStore('kv').delete(k); tx.oncomplete=res; tx.onerror=rej; }); }catch{} }
+};
+
+let _sbSession = null;
+let _sbListeners = [];
+
+async function _sbLoadSession(){
+  try{ const raw=await _idb.get(_SB_SESSION_KEY); if(raw) _sbSession=JSON.parse(raw); }catch{}
+}
+async function _sbSaveSession(s){
+  _sbSession=s;
+  if(s) await _idb.set(_SB_SESSION_KEY, JSON.stringify(s));
+  else await _idb.del(_SB_SESSION_KEY);
+}
+async function _sbRefresh(){
+  if(!_sbSession?.refresh_token) return null;
+  try{
+    const res=await fetch(_SB_URL+'/auth/v1/token?grant_type=refresh_token',{
+      method:'POST', headers:{'apikey':_SB_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({refresh_token:_sbSession.refresh_token})
+    });
+    if(!res.ok){await _sbSaveSession(null);return null;}
+    const d=await res.json();
+    const s={access_token:d.access_token,refresh_token:d.refresh_token,
+      expires_at:Math.floor(Date.now()/1000)+(d.expires_in||3600),user:d.user||_sbSession.user};
+    await _sbSaveSession(s); return s;
+  }catch{return null;}
+}
+async function _sbGetValid(){
+  if(!_sbSession) await _sbLoadSession();
+  if(!_sbSession) return null;
+  if(_sbSession.expires_at < Math.floor(Date.now()/1000)+300) return await _sbRefresh();
+  return _sbSession;
+}
+function _sbHeaders(extra={}){
+  const h={'apikey':_SB_KEY,'Content-Type':'application/json',...extra};
+  if(_sbSession?.access_token) h['Authorization']='Bearer '+_sbSession.access_token;
+  return h;
+}
+async function _sbNotify(event,session){
+  for(const cb of _sbListeners){ try{await cb(event,session);}catch{} }
+}
+
+// Auth
+const _sbAuth = {
+  async getSession(){
+    const s=await _sbGetValid();
+    return {data:{session:s},error:null};
+  },
+  onAuthStateChange(cb){ _sbListeners.push(cb); return {data:{subscription:{unsubscribe(){_sbListeners=_sbListeners.filter(x=>x!==cb);}}}}; },
+  async signInWithPassword({email,password}){
+    try{
+      const res=await fetch(_SB_URL+'/auth/v1/token?grant_type=password',{
+        method:'POST',headers:{'apikey':_SB_KEY,'Content-Type':'application/json'},
+        body:JSON.stringify({email,password})
+      });
+      const d=await res.json();
+      if(!res.ok) return {data:null,error:{message:d.error_description||d.msg||'邮箱或密码错误'}};
+      const s={access_token:d.access_token,refresh_token:d.refresh_token,
+        expires_at:Math.floor(Date.now()/1000)+(d.expires_in||3600),user:d.user};
+      await _sbSaveSession(s);
+      await _sbNotify('SIGNED_IN',s);
+      return {data:{session:s},error:null};
+    }catch(e){return {data:null,error:{message:e.message}};}
+  },
+  async signUp({email,password}){
+    try{
+      const res=await fetch(_SB_URL+'/auth/v1/signup',{
+        method:'POST',headers:{'apikey':_SB_KEY,'Content-Type':'application/json'},
+        body:JSON.stringify({email,password})
+      });
+      const d=await res.json();
+      if(!res.ok) return {data:null,error:{message:d.error_description||d.msg||'注册失败'}};
+      if(d.access_token){
+        const s={access_token:d.access_token,refresh_token:d.refresh_token,
+          expires_at:Math.floor(Date.now()/1000)+(d.expires_in||3600),user:d.user};
+        await _sbSaveSession(s);
+        await _sbNotify('SIGNED_IN',s);
+      }
+      return {data:d,error:null};
+    }catch(e){return {data:null,error:{message:e.message}};}
+  },
+  async signOut(){
+    try{ if(_sbSession?.access_token) await fetch(_SB_URL+'/auth/v1/logout',{method:'POST',headers:_sbHeaders()}); }catch{}
+    await _sbSaveSession(null);
+    await _sbNotify('SIGNED_OUT',null);
+  }
+};
+
+// Query builder
+function _sbFrom(table){
+  const q={method:'GET',filters:[],body:null,sel:'*',single:false,maybe:false,order:null,upsert:false,doSel:false};
+  const b={
+    select(c){q.sel=c||'*';q.doSel=true;return b;},
+    eq(col,val){q.filters.push(col+'=eq.'+encodeURIComponent(val));return b;},
+    order(col,{ascending=true}={}){q.order=col+'.'+(ascending?'asc':'desc');return b;},
+    single(){q.single=true;return b;},
+    maybeSingle(){q.single=true;q.maybe=true;return b;},
+    insert(d){q.method='POST';q.body=d;return b;},
+    upsert(d){q.method='POST';q.body=d;q.upsert=true;return b;},
+    update(d){q.method='PATCH';q.body=d;return b;},
+    delete(){q.method='DELETE';return b;},
+    async then(resolve){
+      try{
+        await _sbGetValid();
+        let url=_SB_URL+'/rest/v1/'+table;
+        const ps=[...q.filters];
+        if(q.method==='GET'||q.doSel) ps.push('select='+encodeURIComponent(q.sel));
+        if(q.order) ps.push('order='+q.order);
+        if(ps.length) url+='?'+ps.join('&');
+        const h=_sbHeaders();
+        if(q.maybe) h['Accept']='application/json';
+        else if(q.single) h['Accept']='application/vnd.pgrst.object+json';
+        if(q.upsert) h['Prefer']='return=representation,resolution=merge-duplicates';
+        else if(q.method==='POST'||q.method==='PATCH') h['Prefer']='return=representation';
+        const res=await fetch(url,{method:q.method,headers:h,body:q.body?JSON.stringify(q.body):undefined});
+        if(res.status===204){resolve({data:null,error:null});return;}
+        const txt=await res.text();
+        let data=null; try{data=txt?JSON.parse(txt):null;}catch{}
+        if(!res.ok){
+          if(q.maybe&&res.status===406){resolve({data:null,error:null});return;}
+          resolve({data:null,error:data||{message:'HTTP '+res.status}});return;
+        }
+        // maybeSingle: return first element or null
+        if(q.maybe&&Array.isArray(data)) data=data[0]??null;
+        resolve({data,error:null});
+      }catch(e){resolve({data:null,error:{message:e.message}});}
+    }
+  };
+  return b;
+}
+
+const _SB = { auth: _sbAuth, from: _sbFrom };
+let _user = null;
+let _userEmail = '';
+
+// ════════════ DATA ════════════
+let D = { me:{name:'',birthday:'',photo:null,gender:'女'}, people:[] };
+// save() 已被 Supabase 各操作函数取代，保留空函数供兼容
+function save(){ /* no-op: data saved via Supabase */ }
+
+// ════════════ AUTH ════════════
+let _authMode = 'login';
+
+function setAuthMode(mode){
+  _authMode = mode;
+  document.getElementById('tabLogin').classList.toggle('active', mode==='login');
+  document.getElementById('tabRegister').classList.toggle('active', mode==='register');
+  document.getElementById('authBtn').textContent = mode==='login'?'登录':'注册';
+  document.getElementById('authErr').textContent='';
+}
+
+async function handleAuth(){
+  const email=document.getElementById('authEmail').value.trim();
+  const pw=document.getElementById('authPassword').value;
+  const errEl=document.getElementById('authErr');
+  const btn=document.getElementById('authBtn');
+  if(!email||!pw){errEl.textContent='请填写邮箱和密码';return;}
+  if(pw.length<6){errEl.textContent='密码至少 6 位';return;}
+  btn.textContent='请稍候...'; btn.disabled=true;
+  if(_authMode==='login'){
+    const{error}=await _SB.auth.signInWithPassword({email,password:pw});
+    if(error){errEl.textContent='邮箱或密码错误';btn.textContent='登录';btn.disabled=false;}
+  } else {
+    const{error}=await _SB.auth.signUp({email,password:pw});
+    if(error){errEl.textContent=error.message;btn.textContent='注册';btn.disabled=false;}
+    else{errEl.className='auth-ok';errEl.textContent='注册成功！请登录';setAuthMode('login');btn.textContent='登录';btn.disabled=false;}
+  }
+}
+
+async function doSignOut(){
+  await _SB.auth.signOut();
+  D={me:{name:'',birthday:'',photo:null,gender:'女'},people:[]};
+  curTab='profile';
+}
+
+// ════════════ DATA LOAD ════════════
+async function loadAllData(){
+  document.getElementById('loadingOverlay').style.display='flex';
+  try{
+    const{data:p}=await _SB.from('profiles').select('*').eq('id',_user.id).maybeSingle();
+    if(p) D.me={name:p.name||'',birthday:p.birthday||'',photo:p.photo_url||null,gender:p.gender||'女'};
+
+    const{data:ppl}=await _SB.from('people')
+      .select('*, fragments(*)')
+      .eq('user_id',_user.id)
+      .order('created_at',{ascending:true});
+    if(ppl){
+      D.people=ppl.map(p=>({
+        id:p.id, name:p.name||'', birthday:p.birthday||'',
+        relation:p.relation||'', gender:p.gender||'',
+        customFamily:p.custom_family||false, photo:p.photo_url||null,
+        fragments:(p.fragments||[])
+          .sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))
+          .map(f=>({id:f.id,type:f.type,content:f.content||'',emoji:f.emoji||'',date:f.frag_date||''}))
+      }));
+    }
+  }catch(e){console.error(e);}
+  document.getElementById('loadingOverlay').style.display='none';
+}
+
+function showAuthScreen(){
+  document.getElementById('appRoot').style.display='none';
+  document.getElementById('authScreen').style.display='flex';
+}
+function showApp(){
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('appRoot').style.display='block';
+}
+
+// ════════════ BAZI CONSTANTS ════════════
+const STEMS   = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+const BRANCHES= ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+const ST_ELEM = [0,0,1,1,2,2,3,3,4,4]; // 木木火火土土金金水水
+const ST_YY   = [1,0,1,0,1,0,1,0,1,0]; // 阳阴
+const EL_NAME = ['木','火','土','金','水'];
+const YY_NAME = ['阴','阳'];
+
+// Branch main stem (本气)
+const BR_MAIN = [9,5,0,1,4,2,3,5,6,7,4,8];
+// 子=癸,丑=己,寅=甲,卯=乙,辰=戊,巳=丙,午=丁,未=己,申=庚,酉=辛,戌=戊,亥=壬
+
+// Ten God calculation
+function tenGod(dmIdx, otIdx){
+  const dEl=ST_ELEM[dmIdx], dYY=ST_YY[dmIdx];
+  const oEl=ST_ELEM[otIdx], oYY=ST_YY[otIdx];
+  const same=dEl===oEl, sameYY=dYY===oYY;
+  if(same) return sameYY?'比肩':'劫财';
+  if(oEl===(dEl+1)%5) return sameYY?'食神':'伤官';   // DM generates
+  if(oEl===(dEl+2)%5) return sameYY?'偏财':'正财';   // DM controls
+  if(oEl===(dEl+3)%5) return sameYY?'七杀':'正官';   // controls DM
+  if(oEl===(dEl+4)%5) return sameYY?'偏印':'正印';   // generates DM
+}
+
+// ════════════ PILLAR CALCULATION ════════════
+// Anchor: 2000-01-27 = 甲申日 (stem=0, branch=8)
+const ANCHOR = new Date(2000,0,27);
+const ANCHOR_ST=0, ANCHOR_BR=8;
+
+function dayPillar(bday){
+  const d=new Date(bday);
+  const diff=Math.round((d-ANCHOR)/86400000);
+  return {
+    stem: ((ANCHOR_ST+diff)%10+10)%10,
+    branch: ((ANCHOR_BR+diff)%12+12)%12
+  };
+}
+
+function yearPillar(bday){
+  const d=new Date(bday);
+  let y=d.getFullYear();
+  const m=d.getMonth()+1, day=d.getDate();
+  if(m<2||(m===2&&day<4)) y--; // before 立春
+  return {
+    stem: ((y-4)%10+10)%10,
+    branch: ((y-4)%12+12)%12
+  };
+}
+
+// Month branch from approximate solar term dates
+function monthBranch(m,day){
+  // [month, day_from, branch_index]
+  const terms=[
+    [1,6,1],[2,4,2],[3,6,3],[4,5,4],[5,6,5],[6,6,6],
+    [7,7,7],[8,7,8],[9,8,9],[10,8,10],[11,7,11],[12,7,0]
+  ];
+  let br=1; // default 丑 (early Jan)
+  for(const [tm,td,tb] of terms){
+    if(m>tm||(m===tm&&day>=td)) br=tb;
+  }
+  return br;
+}
+
+function monthPillar(bday,yearStem){
+  const d=new Date(bday);
+  const m=d.getMonth()+1, day=d.getDate();
+  const br=monthBranch(m,day);
+  // Starting stem for 寅月 by year stem
+  const base=[2,4,6,8,0,2,4,6,8,0][yearStem];
+  const offset=((br-2)%12+12)%12;
+  return { stem:(base+offset)%10, branch:br };
+}
+
+function calcPillars(bday){
+  if(!bday) return null;
+  const yp=yearPillar(bday);
+  const mp=monthPillar(bday,yp.stem);
+  const dp=dayPillar(bday);
+  return { year:yp, month:mp, day:dp };
+}
+
+// ════════════ ANALYSIS CONTENT ════════════
+const DM_DATA = [
+  { // 甲木
+    tagline:'直来直去，有担当',
+    headline:'正直善良，天生领袖',
+    vibes:[
+      {t:'行动派',d:'说做就做，不喜欢把想法停留在嘴上，脑子和身体几乎同步启动'},
+      {t:'有点固执',d:'认定的事不轻易改，被说服的难度相当高，有时候宁愿自己吃亏'},
+      {t:'爱憎分明',d:'喜欢的人和不喜欢的人，内心分得很清楚，不太会为了场面勉强自己'},
+      {t:'独处也自在',d:'不需要随时有人陪，独处时反而很放松，是靠独处充电的类型'},
+    ],
+    core:[
+      {t:'森林里最高的树',d:'甲木是阳木之首，象征顶天立地。您天生有领导气质，不是那种张扬的强势，而是用担当和行动让人信服。在朋友中往往是扛责任、出主意的那个人。'},
+      {t:'认定了就不回头',d:'一旦认定方向，会像树一样笔直向上，意志坚定，不轻易弯折。这让您在长期目标上有惊人的坚持力，但有时也会固执己见，难以接受不同声音。'},
+      {t:'重情义，绝不拖泥带水',d:'对朋友慷慨豪爽，讲义气，愿意两肋插刀。但一旦发现对方不真诚，会果断远离，不纠缠，不辩解。表面淡定，内心已做了决定。'}
+    ],
+    tips:'和甲木相处，直接说你想要什么，TA不擅长猜测，但会认真履行承诺。TA说话直，别太往心里去；如果TA开始疏远你，那说明TA已经心里有了判断。'
+  },
+  { // 乙木
+    tagline:'温柔有韧，善察人心',
+    headline:'温柔有韧性，高情商',
+    vibes:[
+      {t:'察言观色',d:'进到一个新环境，先默默感受气氛再开口，像在调频一样'},
+      {t:'情绪海绵',d:'容易被周围人的情绪影响，需要平和稳定的环境才能完全放松'},
+      {t:'慢热型',d:'刚认识时话不多，熟了以后完全是另一个人，反差很大'},
+      {t:'内心柔软',d:'表面温柔，但遇到不公平或被忽视的事会很委屈，只是不说'},
+    ],
+    core:[
+      {t:'看似柔弱，实则最能扛',d:'乙木是藤蔓，逆境中弯而不折，总能找到缝隙继续生长。您可能不是最锋芒毕露的那个，却往往是最后还在坚持的那一个。'},
+      {t:'情商极高，感知细腻',d:'能感受到周围人情绪的微妙变化，善于维系和谐，让人在您身边感到舒适。但有时因为太在意他人感受，会把自己的需求压在最后。'},
+      {t:'内心需要安全感和认可',d:'乙木在贫瘠之地会枯萎，在有养分的土壤里才能繁花似锦。您对环境和关系的质量非常敏感，需要稳定、持续的肯定才能充分绽放。'}
+    ],
+    tips:'和乙木相处，多一句关心和肯定，TA非常在意你是否真的看见TA。TA委婉，需要你主动问"你怎么看这件事"，TA才会说真心话。'
+  },
+  { // 丙火
+    tagline:'热情似阳，喜欢被关注',
+    headline:'热情开朗，光芒四射',
+    vibes:[
+      {t:'需要被看见',d:'喜欢被关注，在人群中会自然发光，被忽视时内心会有小失落'},
+      {t:'情绪来去快',d:'刚才还在发火，转眼就忘了，不记仇，但当下的情绪真实得没有掩饰'},
+      {t:'停不下来',d:'很难长时间安静，喜欢热闹和互动，独处久了会开始找人说话'},
+      {t:'大大咧咧',d:'不太在意细节，有时会忽略别人的小情绪，但真心是好的'},
+    ],
+    core:[
+      {t:'太阳一样的存在感',d:'天生自带热情，进入一个场合就能让气氛活跃起来。您的笑声、能量和慷慨，是周围人眼中真实的"阳光"，让人感到温暖有力量。'},
+      {t:'慷慨但有时没有边界',d:'极为大方，喜欢给予，把朋友的事当自己的事。但有时会过度付出，反而让自己感到委屈。学会说"不"，是您这一生重要的功课。'},
+      {t:'热情来得快，需要正反馈维持',d:'一件事刚开始时满腔热血，但持续热情需要不断的认可和成就感来维持。需要有人时常提醒您"还在路上"，TA的鼓励对您至关重要。'}
+    ],
+    tips:'和丙火相处，给TA足够的舞台和认可，别熄灭TA的热情。TA有时过于义气，答应了太多，帮TA把握尺度，是最好的关心。'
+  },
+  { // 丁火
+    tagline:'细腻温暖，观察力超群',
+    headline:'细腻温暖，执着有深度',
+    vibes:[
+      {t:'观察力超强',d:'别人没注意到的细节，都悄悄记在脑子里，话不多但什么都看见了'},
+      {t:'表面淡定内心运转',d:'看起来平静，其实一直在分析感受和观察，表情跟不上内心'},
+      {t:'高度专注',d:'对真正在意的事，可以进入忘我的专注状态，外界几乎叫不动'},
+      {t:'需要独处充电',d:'社交后需要一段独处时间来消化情绪，恢复能量，不是冷漠'},
+    ],
+    core:[
+      {t:'烛光式的温暖',d:'不是耀眼的明星，而是在黑暗中持续燃烧的那道光。您给人的温暖是私密而持久的，对信任的人会全心全意，是很多人心里"真正懂我的人"。'},
+      {t:'超强的专注力和执着',d:'一旦投入一件事，会反复钻研，不达目的誓不罢休。这种执着是深度和专业性的来源，但有时会钻进牛角尖，需要一个人轻轻拉一下。'},
+      {t:'感受力和审美出众',d:'对美、艺术和情感有极高的感知力，常常感受到别人忽略的细节。有独特的审美品位，在艺术、文字、或某个精深领域往往有令人惊叹的造诣。'}
+    ],
+    tips:'和丁火相处，认可TA在乎的细节，TA会记住你每一个用心的举动。如果发现TA在反复钻研同一件事，轻轻问一句"这件事还有其他角度吗"，会让TA豁然开朗。'
+  },
+  { // 戊土
+    tagline:'稳重踏实，天然定心丸',
+    headline:'稳重可靠，厚德载物',
+    vibes:[
+      {t:'天然的稳',d:'到哪里都不慌，是稳定场域的那个人，别人紧张时TA在整理思路'},
+      {t:'话不多有分量',d:'不轻易开口，但说出来往往一语中的，废话少，含金量高'},
+      {t:'不喜欢被催',d:'节奏被打乱会有点烦，需要自己的步调，催急了反而变慢'},
+      {t:'情绪不外露',d:'内心有自己的判断和感受，但很少当众表达，藏得很深'},
+    ],
+    core:[
+      {t:'大地一样的承载力',d:'天生适合成为别人的依靠，您的稳重让人有安全感。朋友有困难，第一个想到找的往往是您。这种可靠不是刻意为之，是骨子里的本质。'},
+      {t:'包容但有底线',d:'可以接受很多，但有些原则性的东西绝不妥协。这个底线沉默而坚固，不轻易说出，但人人知道——过了那条线，戊土不会吵架，但会彻底关门。'},
+      {t:'行动慢，但结果扎实',d:'不是那种快速决策的人，思考需要时间，但一旦做了决定，就会踏实执行，结果往往比"快"的人更可靠。慢，是您的节奏，不是您的缺点。'}
+    ],
+    tips:'和戊土相处，不要催TA，给TA做决定的时间，结果往往值得等待。TA不善于用语言表达关心，注意TA的行动，那才是TA的语言。'
+  },
+  { // 己土
+    tagline:'体贴善感，内心戏很多',
+    headline:'温和细腻，善解人意',
+    vibes:[
+      {t:'脑内独白很多',d:'脑子里的话比说出来的多十倍，喜欢反复咀嚼一件事的各种角度'},
+      {t:'有点紧绷',d:'很难完全放松，总有一根弦在绷着，即使外表看起来很平静'},
+      {t:'对亲近的人很黏',d:'亲密关系中依赖感强，喜欢有人在身边，陌生人面前则保持距离'},
+      {t:'容易过度思考',d:'一件小事可以在脑子里回放好几遍，有时候自己把自己绕进去了'},
+    ],
+    core:[
+      {t:'田园一样的滋养感',d:'极为体贴，善于照顾他人感受，让人在您身边感到被接纳、被理解。是很多人心目中"最暖心的朋友"，这种温柔不是表演，是真实的本性。'},
+      {t:'外表平静，内心戏很多',d:'看上去平和稳定，实际上在反复思考和权衡。不轻易表露真实想法，有时会把很多事情藏在心里，越积越重，需要一个出口。'},
+      {t:'极重感情，对亲密关系非常在意',d:'需要稳定、高质量的亲密关系，对背叛和不真诚非常敏感。一旦伤了心，恢复需要很长时间。您给出的信任，是真的在乎。'}
+    ],
+    tips:'和己土相处，多说出你的感受和意图，TA不喜欢猜，但会把每一句话都放在心上。TA有时压着自己的情绪，问一句"你还好吗"，TA真的需要这句话。'
+  },
+  { // 庚金
+    tagline:'内心像军队，说一是一',
+    headline:'刚直果断，有原则有魄力',
+    vibes:[
+      {t:'内心有纪律感',d:'内心像一支军队，纪律感强，说一是一，不喜欢模棱两可的状态'},
+      {t:'压力转为行动',d:'有压力不是抱怨，而是沉默然后进入行动模式，外表越平静越在发力'},
+      {t:'不好被否定',d:'很难接受被否定，但接受实力上的竞争，讲道理可以，否定人格不行'},
+      {t:'话少但直接',d:'不废话，说话直接，有时候别人还没准备好就已经说到关键了'},
+    ],
+    core:[
+      {t:'刀一样的直接',d:'想什么说什么，不拐弯抹角。这是魅力也是锋芒——您的直接让人觉得可靠，但有时无意中会刺伤别人，而自己浑然不觉。'},
+      {t:'内心有一套坚不可摧的标准',d:'有非常清晰的是非观和价值观，不轻易被说服放弃原则。旁人改变不了您认定的事，这既是力量，也意味着有时候关系的弹性需要主动去建立。'},
+      {t:'要强，不服输，逆境中爆发',d:'骨子里有股倔劲，越是被压制，反弹的力量越大。您在逆境中往往比顺境中更出色，压力是点燃您的引线，不是压垮您的重量。'}
+    ],
+    tips:'和庚金相处，不需要拐弯抹角，TA最烦暗示。有什么说什么，TA接受得了直接；反而是绕圈子让TA不舒服。TA批评你，不是不喜欢你，是把你当成人。'
+  },
+  { // 辛金
+    tagline:'精致敏锐，一直在打分',
+    headline:'精致敏锐，自尊心强',
+    vibes:[
+      {t:'细节雷达全开',d:'对细节极度敏感，一个眼神、一个停顿都能解读出情绪和态度'},
+      {t:'内心一直在评估',d:'表面平静，脑子里一直在给周围的人和事打分，只是不说出来'},
+      {t:'喜欢品质感',d:'对环境、物品、人的质感有直觉性的要求，"差不多"让TA不舒服'},
+      {t:'对自己苛刻',d:'自我要求很高，常常觉得自己还可以更好，有时候是自己最严格的评审'},
+    ],
+    core:[
+      {t:'珠宝一样的精致感',d:'对细节和品质非常讲究，审美品味往往高人一筹。您的存在本身就是一种质感，对"差不多就行"有天然的排斥，这种精致是骨子里的，不是装出来的。'},
+      {t:'自尊心是软肋也是保护壳',d:'表面不在乎，内心非常敏感，一句无心的批评可能记很久。这层自尊既保护了您，也有时让亲近的人难以触碰真实的您。'},
+      {t:'能说会道，心思灵活',d:'言语表达能力强，思维敏捷，能快速抓住重点。聊天时往往是最有趣、最犀利的那个人，让人觉得和您聊天总有收获。'}
+    ],
+    tips:'和辛金相处，多给TA具体的肯定，"你那件事处理得很好"比"你很棒"更打动TA。别当众批评TA，那会让TA觉得颜面尽失，记很久。'
+  },
+  { // 壬水
+    tagline:'灵活聪慧，多频道同时运行',
+    headline:'聪明灵活，视野开阔',
+    vibes:[
+      {t:'多频道同时运行',d:'脑子里永远同时跑着好几个想法，切换快，有时自己都跟不上自己'},
+      {t:'喜欢新鲜感',d:'重复的事做久了会疲惫，需要变化和刺激，一成不变让TA窒息'},
+      {t:'社交能量足',d:'在人群中能量满满，认识新朋友是享受，不是消耗'},
+      {t:'说话跳跃',d:'思维太快，说话有时候在别人还没跟上的地方已经跳到结论了'},
+    ],
+    core:[
+      {t:'大江大河的气度',d:'视野宽广，不拘小节，喜欢和各种各样的人交流，信息量超大。您的圈子往往横跨多个领域，是天然的"连接者"，能把看似不相关的人和资源撮合在一起。'},
+      {t:'随机应变是天赋',d:'在变化和混乱中如鱼得水，越是复杂的局面越能发现别人看不到的机会。不喜欢一成不变，适应力是您最强大的能力之一。'},
+      {t:'想法多，需要有人帮助落地',d:'精力容易分散，有时候一个项目刚开始就被下一个更有趣的事情吸引走了。需要一点结构和锚点，或者一个能帮您把想法落地的人。'}
+    ],
+    tips:'和壬水相处，把你的想法说清楚，TA喜欢聊天，聊着聊着就帮你想出方案了。如果TA不专注，给TA一个具体的任务，比告诉TA"认真点"有效十倍。'
+  },
+  { // 癸水
+    tagline:'感性深邃，内心宇宙很大',
+    headline:'感性细腻，直觉灵敏',
+    vibes:[
+      {t:'感知力像雷达',d:'一直在默默扫描周围的情绪和信号，氛围变了第一个感觉到'},
+      {t:'表面安静内心热闹',d:'外表可能寡言，但内心世界极其丰富，思绪从来没有停过'},
+      {t:'容易想太多',d:'一句话会想出十种解读，一件事会推演好几个结果，累但停不下来'},
+      {t:'难被糊弄',d:'对真诚有极强的判断力，假的东西骗不了TA，TA只是不说穿'},
+    ],
+    core:[
+      {t:'雨露一样的渗透力',d:'感知力极强，能察觉到旁人感受不到的氛围和情绪变化。有时候您"知道"某件事会发生，却说不清原因——这是直觉，是您与生俱来的礼物。'},
+      {t:'内心世界极为丰富',d:'外表可能寡言，但内心有整个宇宙。想象力旺盛，情感深沉，对事物有非常深层的感悟，是那种"思考得比说出来的多得多"的人。'},
+      {t:'不轻易打开心扉，但一旦打开就是全心全意',d:'进入您的内心需要时间和耐心，但获得您的信任之后，您的忠诚和温柔会让人感动。您的感情，是慢热型的珍贵。'}
+    ],
+    tips:'和癸水相处，不要逼TA快速做决定，TA需要在安静中沉淀。主动走进TA的世界，问TA在想什么，比等TA开口要有效。TA沉默，不是冷漠，是在想很多。'
+  }
+];
+
+// Ten God descriptions — three contexts
+const TG_INNER = { // 日支: 内心世界
+  比肩:'内心极度独立，不喜欢依赖别人，也抗拒被人依赖。独处对您来说是充电而非孤独，需要自己的精神空间来恢复能量。',
+  劫财:'内心深处有一种竞争欲和不安全感，在亲近的人面前有所保留。表面豁达，但一旦感觉利益或感情受到威胁，会迅速警觉。',
+  食神:'内心享乐主义，感受型人格。在有安全感的环境里会非常放松温柔，喜欢通过美食、艺术、感官体验来滋养自己的内心。',
+  伤官:'内心有强烈的叛逆感和创造欲，永远对现状有一丝不满足。对自己和亲密关系的要求都很高，是推动自我成长的内在引擎。',
+  偏财:'内心喜欢热闹，对感情比较多情，不喜欢被束缚。需要不断的新鲜感和外部刺激来维持活力，单调和重复让您感到窒息。',
+  正财:'内心踏实务实，对日常生活有掌控欲。情感上稳定可靠，重视实质多于形式，但有时过于现实，少了几分浪漫和随机应变。',
+  七杀:'内心有一个强大的压力源，永远觉得自己还不够好。这种不满足感是强烈的自我驱动力——正是它推着您不断突破自己。',
+  正官:'内心有极强的秩序感和自律性，对自己的行为和形象有较高要求。规则和规范对您来说是安全感的来源，而不是束缚。',
+  偏印:'内心世界非常独特，有自己的一套思维方式，直觉和悟性都很强。不太按常规出牌，有时候您的想法旁人一时难以理解，但往往是对的。',
+  正印:'内心温柔细腻，同理心极强。在温暖被保护的环境里才能充分绽放，需要情感上的支持和被认可，给予您安全感的人是您最大的力量。'
+};
+const TG_TALENT = { // 月干: 才华气场
+  比肩:'表达时直接有力，主见很强，不太擅长妥协，但这种笃定反而有感召力，在团队里是有主见的独立声音。',
+  劫财:'竞争力和感染力都很强，表达时充满冲劲，能激励周围的人。有时候有些好胜，但这股劲往往能成事，是团队的活力担当。',
+  食神:'表达能力出色，有创意，天生会让人感到舒服。语言、艺术或某种手艺方面可能有天赋，说话给人如沐春风、余音绕梁的感觉。',
+  伤官:'才华横溢，说话犀利有见地，思维跳跃前卫。对平庸的东西有天然排斥，往往在某个领域有令人惊叹的专业深度和独到眼光。',
+  偏财:'善于交际，八面玲珑，有商业嗅觉。擅长在各种人际关系中游刃有余，左右逢源，是天然的资源整合者和社交枢纽。',
+  正财:'做事认真勤奋，有很强的执行力，工作上稳定可靠。善于把计划落地，是周围人眼中"靠谱"的代名词，值得托付大事。',
+  七杀:'行动力极强，雷厉风行，在压力和挑战下反而能激发惊人的爆发力。越是困难的任务，越能点燃您的斗志和潜能。',
+  正官:'严谨负责，有很强的规则意识，在机构或团队中是骨干和定心丸。对职责和承诺非常认真，荣誉感和责任心是重要的驱动力。',
+  偏印:'思维独特，有独到见解，擅长独立思考和跨界联想。可能在冷门、艺术或研究领域有别人完全想不到的才华和洞察力。',
+  正印:'有旺盛的求知欲和学习能力，温文儒雅。学识方面往往令人称道，有耐心，善于传授和启发他人，是天然的老师和引路人。'
+};
+const TG_BG = { // 年干: 人生底色
+  比肩:'在独立自主的环境中成长，形成了很强的自我意识。习惯靠自己，这既是力量，也意味着有时候接受帮助对您来说并不容易。',
+  劫财:'成长中见过得失和竞争，形成了务实的处世哲学。在利益和感情上有清醒的判断力，不太容易被表象迷惑，见过世面。',
+  食神:'成长环境相对宽松愉快，养成了乐观随性的底色。对生活有天然的热爱，喜欢享受过程，不太喜欢为结果过度焦虑。',
+  伤官:'成长中有一些不满足或反叛的经历，激发了独立思考的本能。不轻易随大流，有自己的判断标准，思想上相当独立自由。',
+  偏财:'从小接触的人和世界比较多元，形成了开放、灵活、乐于探索的世界观。资源意识强，善于发现和利用身边的机会和人脉。',
+  正财:'成长中有务实的熏陶，脚踏实地是骨子里的基因。对金钱和物质有健康稳定的态度，追求踏实而非虚华，信奉一分耕耘一分收获。',
+  七杀:'成长中经历过一定的压力或挑战，磨砺出了极强的韧性。那些没有压垮您的，真的成就了今日强大的您——这是磨出来的底气。',
+  正官:'成长环境有一定的规范和秩序，形成了自律、守规则、重责任的底色。荣誉感和对承诺的认真，是从小刻进骨子里的东西。',
+  偏印:'成长中有一段特立独行或孤独的岁月，形成了独特的内心世界。这段经历反而造就了您与众不同的视角、悟性和深度。',
+  正印:'成长中有温暖的支持和良好的教育资源，培养了温和、有学识、有同理心的底色。善良是您从小就有的本质，不是后天学来的。'
+};
+
+// ════════════ COMPAT TABLE ════════════
+const CT = {};
+function ck(a,b){ return [Math.min(a,b),Math.max(a,b)].join('-'); }
+[
+[0,0,'两人都直来直去，容易在小事上较劲，都认为自己是对的，遇到分歧时容易僵持。','试着轮流主导，把竞争化为激励。有时主动退一步，不是输，是给关系留了呼吸的空间。'],
+[0,1,'甲木说话直接，乙木内心细腻。甲的直白有时让乙觉得被忽视或受伤，乙的委婉又让甲摸不清方向。','甲木多留意TA情绪的细微变化，一句"你还好吗"很重要。乙木可以更直接表达需求，别让甲猜。'],
+[0,2,'两人精力充沛，有时互相压制气场，争着表现，也可能因各自太忙而忽略了彼此。','木生火，你们是很好的搭档。甲给方向，丙给热情，一起做有意义的事效果很棒。'],
+[0,3,'甲做事大刀阔斧，丁追求细致入微，执行方式不同容易产生分歧。甲觉得丁太慢，丁觉得甲太粗糙。','各司其职：甲把握方向，丁做好细节。认可对方的方式，不必强求一致。'],
+[0,4,'甲木进取，戊土保守，节奏差异可能让双方都憋屈。甲嫌戊太慢，戊觉得甲太冒进。','戊土的稳定是甲木的根基，甲要感恩这份踏实。戊也可以让自己更有弹性，偶尔跟上甲的步伐。'],
+[0,5,'甲木直接，己土内敛多虑，沟通差异大。甲说了就忘，己记在心里，容易积累误解。','己土多说出顾虑，甲木会认真听。甲注意别太"理所当然"，多一句解释能省去很多误会。'],
+[0,6,'两人都有主见，都不服软，正面冲突时话容易说得太重，伤了感情还不自知。','争论时先暂停一下，冷静后再谈。对事不对人，是你们相处的关键原则。'],
+[0,7,'甲太直接，辛自尊心强，一句无心的话可能让辛耿耿于怀很久，而甲完全不知道。','和辛相处，话说完留三分。多用"我觉得"而非"你应该"。辛金的精致值得甲多用心去欣赏。'],
+[0,8,'两人想法都多，各有方向，在计划上容易各说各话，难以形成合力。','壬的灵活帮甲看到更多可能，甲的坚定帮壬聚焦。多一起头脑风暴，少各干各的。'],
+[0,9,'甲行动导向，癸感性内敛，对"重要的事"定义不同，容易觉得对方不在一个频道。','癸水的感知力能发现甲忽略的细节。甲要主动问TA的感受，癸要把直觉说出来。'],
+[1,1,'两人都敏感体贴，反而因为"太照顾对方感受"而不说真心话，形成假性和谐。','给彼此说真话的空间。适当说出不满和期待，你们都懂得照顾彼此，也值得被真实对待。'],
+[1,2,'乙木细腻，丙火外向，乙有时跟不上丙的节奏，被带着走会疲惫。丙觉得乙"太谨慎了"。','丙火少一点强行拉着对方，给乙慢慢来的空间。乙木尝试放开一点，跟着丙感受当下。'],
+[1,3,'两人都细腻，容易深度共鸣，但也容易陷入过度思虑，把小事想得太复杂。','有了共鸣要行动。一起做点实际的事，别光在感受层面打转。彼此多一些具体的肯定。'],
+[1,4,'乙木灵动，戊土稳重，节奏差异偶尔让乙觉得沉闷，戊觉得乙不够踏实。','戊土的稳定给乙木安全的土壤。乙带戊感受生活趣味，戊帮乙落地——天然的互补搭档。'],
+[1,5,'两人都善于体察，但都不喜欢直说，容易互相猜测，越猜越偏。','两个内敛的人需要刻意练习直接表达。说出"我希望你……"，比让对方猜要有效得多。'],
+[1,6,'庚金说话直，乙木受得了吗？乙有时觉得庚太硬，庚觉得乙太婉转。','庚说话注意力度，乙是敏感的。乙可以学庚的果决，庚可以向乙学习温柔，是很好的互补。'],
+[1,7,'两人都有审美和感知力，但辛自尊心强，乙的委婉可能被误读为不在乎，辛会受伤。','告诉辛TA哪里做得好，赞美要具体。辛在乙面前很需要被认可，多说"你真的很厉害"。'],
+[1,8,'壬信息量大，想法多，乙有时被淹没，跟不上思路，被动接受而不发声。','壬慢下来听乙说话。乙也要主动表达观点，不要总顺着壬走，你的感受和判断同样重要。'],
+[1,9,'两人都感性细腻，容易互相感染情绪，一个低落另一个也跟着低落。','要互相托举，不是一起沉下去。约定：谁状态不好，另一个主动带对方做件轻松的事。'],
+[2,2,'两个太阳，都想发光，可能在注意力和主导权上隐性竞争，少了踏实感。','收起一点表演欲，对对方真实一点。合作做一件事，会比单打独斗精彩得多。'],
+[2,3,'丙火热情外放，丁火细腻内敛，节奏不同时丁可能觉得被丙忽略，丙觉得丁"太安静了"。','丙要多关注丁的状态，主动问"最近怎么样"。丁不要只在心里默默期待，直接说出来。'],
+[2,4,'丙火冲劲足，戊土稳重，丙有时觉得戊保守不配合，戊觉得丙太冒失。','火生土，丙的热情需要戊来承载和落地。多听戊的顾虑，那往往是经验，不是阻力。'],
+[2,5,'丙外向直接，己内敛谨慎，表达差异大。丙有时忽略己的感受，己又不说，容易积怨。','丙放慢速度，给己留表达的空间。己在感受还小的时候就说出来，别等成了大问题。'],
+[2,6,'两人都直接，火克金的关系下，丙的热情有时会让庚觉得被逼迫或太强势。','丙火收一点锋芒。庚金在丙面前少一点防御，你们其实很互补，可以擦出好的火花。'],
+[2,7,'丙火热情，辛金矜持，丙的直接可能让辛觉得不被尊重，辛的骄傲又让丙费解。','丙多给辛精致的体验，辛喜欢被认真对待。辛在丙面前可以少一点矜持，多笑一笑。'],
+[2,8,'两人想法天马行空，容易互相拉着跑，没人踩刹车，计划多落地少。','每次头脑风暴后，各自认领一个行动项。水克火，壬的冷静是提醒，不是否定。'],
+[2,9,'丙火外向，癸水内敛，丙的热情有时会淹没癸，让癸不知如何回应。','丙要学着安静陪伴，不必时刻热闹。癸可以告诉丙"我只是需要安静一下"，丙会理解的。'],
+[3,3,'两人都细腻认真，容易陷入共同的执念，互相加重焦虑，或一起过度分析。','找一个轻松的话题聊，不要每次都讨论深度问题。有时一起看部喜剧比长谈更解压。'],
+[3,4,'丁火细腻，戊土包容，通常融洽。但丁有时期待更多情感回应，戊的沉稳显得"木讷"。','戊多用语言表达感受，哪怕一句"我挺开心和你在一起的"。丁不要把猜测当事实。'],
+[3,5,'两人情感细腻，相互理解深。但己的顾虑加上丁的执着，容易在担忧中原地打转。','定期"清空"一下，把积压的情绪说出来。约定：说出来是信任，不是抱怨。'],
+[3,6,'庚金直接，丁火细腻，庚的话可能无意让丁受伤，丁不说，庚完全不知道出了什么事。','庚注意措辞，批评前先问问丁的感受。丁要学会说"你那句话让我有点难受"，别让情绪暗暗发酵。'],
+[3,7,'两人都有审美，都认真，但辛的自尊加上丁的执着，容易为了"谁对"争执不下。','找到双方审美的交集，欣赏对方的品味。有分歧时，不必分出高下，各有各的美。'],
+[3,8,'丁细致专注，壬发散广博，节奏和视角都不同，容易鸡同鸭讲。','壬讲完大方向，再听丁把细节说清楚。丁先做完一件事，再跟着壬展开下一个话题。'],
+[3,9,'两人都感性，情感共鸣强。但两个内向深情的人，谁都不先开口，沉默容易被误读成疏远。','主动说一句"我很在乎你"，不需要理由。水火之间，温度刚刚好。'],
+[4,4,'两个戊土，稳是稳了，但都等对方先动，关系容易停滞，缺乏变化。','主动提议一件新事：去没去过的地方，或尝试两人都没做过的事。打破惯性，关系更有活力。'],
+[4,5,'戊土大气，己土细腻，通常和谐。但己有时觉得戊不够细心，戊觉得己想太多。','戊多一些细心的小动作，己多一些大气的格局。你们都是重感情的人，相互滋养最自然。'],
+[4,6,'土生金，戊愿意支持庚。庚的强势有时让戊感到压力，戊的守成让庚觉得拖后腿。','庚要感谢戊的付出，不要把支持当作理所当然。戊可以更主动表达想法，不只是配合庚。'],
+[4,7,'戊稳重，辛精致，节奏不同。辛觉得戊不够精细，戊觉得辛计较太多细节。','欣赏对方的不同：辛的精致是品质，戊的稳重是保障。在包容中各自成长。'],
+[4,8,'戊保守，壬灵动，戊的原则有时阻挡壬的创意，壬的变通让戊不放心。','戊给壬稳定的起点，壬给戊更广的视野。互相信任，分工会很默契。'],
+[4,9,'戊土踏实，癸水感性，戊有时不懂癸的直觉和情绪，癸觉得戊太理性，不够懂自己。','戊用感受来理解癸，不要只分析对错。癸把直觉转化成具体的话说给戊听，比较容易沟通。'],
+[5,5,'两人都细心顾虑，反而都不敢先说真心话，形成假性和谐，内里都有点憋屈。','给彼此说真话的安全感。这段关系值得更真实的你们。'],
+[5,6,'庚的直接让己受伤的频率较高，己的委婉让庚看不透。一个太硬，一个太软。','庚说话前想想"TA会怎么感受"。己在庚面前可以更坚定，说清楚自己的界限。'],
+[5,7,'两人都在意细节，都重感情，但辛的自尊加上己的内敛，容易因为"说不清楚"产生误会。','把"我以为你明白"换成"我想让你知道"。你们对彼此感受都敏锐，直说反而不伤人。'],
+[5,8,'壬信息量大，己容易被淹没。壬的跳脱让己没有安全感，己的谨慎让壬觉得束缚。','壬慢下来，多听己把话说完。己说出对安全感的需求，壬知道了，会配合的。'],
+[5,9,'两人感性，都重内心感受，但都不太会直接说需求，容易靠猜，猜着猜着就误解了。','建立一个"暗语"：某个词代表"我需要你陪陪我"。把沟通门槛降低，关系会轻松很多。'],
+[6,6,'两个庚金，都刚，都有原则，正面冲突时非常激烈，伤了感情还互不认错。','冲突后各自冷静，再重新谈。这种关系里需要有一个人先迈出一步，谁先，谁就更有智慧。'],
+[6,7,'庚刚直，辛精致，庚的话有时粗糙，让辛觉得不被尊重。辛的矜持让庚费解。','庚说话留余地，辛别太玻璃心。你们都有锋芒，可以彼此打磨，也可以彼此受伤，看相处方式。'],
+[6,8,'庚的原则遇上壬的变通，容易在"该坚持还是该灵活"上产生分歧。','庚的原则是底线，壬的灵活是策略。学会在不同场景下切换，别把对方的优势当缺点。'],
+[6,9,'庚直来直去，癸感性深沉，庚说完就算，癸还在心里反复咀嚼。','庚说完敏感的话，多加一句"我没有别的意思"。癸把在心里想的说出来，别一个人消化太久。'],
+[7,7,'两个辛金，都精致，都自尊心强，容易为了面子谁都不肯低头，关系变得很有距离感。','把"等你先说"换成"我想先说"。两人都认真对待关系，可以直接说"我很在意这段关系"。'],
+[7,8,'辛精致讲究，壬潇洒随性，生活方式容易产生摩擦。辛觉得壬太随便，壬觉得辛太讲究。','找到双方都能接受的节奏。辛放松一点，壬认真一点，中间有很大的空间。'],
+[7,9,'两人都敏感，都有丰富的内心世界，但辛的自尊让癸不敢表达，癸的沉默让辛猜不透。','辛先放下自尊，问一句"你最近怎么了"。癸要相信辛可以接住你的感受，开口分享。'],
+[8,8,'两个壬水，想法都多，热情同频，但都容易三分钟热度，项目没做完就又有新想法。','给每次计划设一个最小目标：这一件事做完再说下一件。互相督促落地，是共同成长的关键。'],
+[8,9,'壬水外向，癸水内敛，壬快了，癸跟不上；壬说太多，癸进不去。','壬留出安静的时间陪癸，不说话也没关系。癸在壬安静下来时说出感受，那时壬最听得进去。'],
+[9,9,'两个癸水，都感性，共鸣极深，但也容易陷入情绪的共同漩涡，难以自拔。','约定一个"情绪出口"：散步、做饭、一起看个视频。先从情绪里出来，再讨论问题。'],
+].forEach(([a,b,m,t])=>{ CT[ck(a,b)]={mis:m,tips:t}; });
+
+// ════════════ GENDER-SPECIFIC DAY BRANCH (配偶宫) ════════════
+// [女版, 男版]  key = 十神
+const TG_INNER_GEN = {
+  比肩:  ['感情上很独立，不喜欢过度依赖伴侣，需要对等尊重的关系。','感情上容易遇到和自己很像的人，两人都独立，需要磨合出共处的节奏。'],
+  劫财:  ['亲密关系中有较强的占有欲，也容易过度警觉，需要有意识地建立安全感。','感情路上容易有波折，要注意在关系中保持坦诚，避免互相猜疑。'],
+  食神:  ['天然有照顾和付出的本能，把滋养伴侣视为爱的表达方式，感情中温柔而踏实。','感情上细腻温柔，享受照顾与被照顾，注重日常中小而真实的幸福感。'],
+  伤官:  ['配偶宫有伤官，感情标准高，不好管束，往往要找到真正让自己钦佩和共鸣的人，才能真正安定下来。','自身魅力强，对伴侣要求高，不轻易妥协，有时容易在感情上棱角分明，需要找到真正match的人。'],
+  偏财:  ['配偶宫有偏财，感情上多情，容易喜欢上多种类型的人，人生中可能要经历一段摸索才找到真正的归宿。','配偶宫有偏财（妻星），容易被活泼、多元的类型吸引，感情经历可能比较丰富，需要时间沉淀。'],
+  正财:  ['对感情持务实态度，倾向于选择踏实可靠的伴侣，重视稳定感和日常经营。','配偶宫有正财（妻星），倾向于找踏实贤惠的伴侣，重视家庭经营，感情观成熟稳重。'],
+  七杀:  ['配偶宫有七杀（夫星），在感情上容易被有魄力、强势、有领导力的人吸引，是有磁场的相遇。','配偶宫有七杀，对自己要求极高，在感情中也希望找到能激励自己、旗鼓相当的伴侣。'],
+  正官:  ['配偶宫有正官（夫星），渴望稳定、有责任感的伴侣，重视名分、家庭和承诺，是认真型的感情观。','配偶宫有正官，感情上循规蹈矩，重视承诺和名分，是认真负责的伴侣类型。'],
+  偏印:  ['感情上比较慢热，需要时间建立信任，不喜欢被催促，要等真正感到安全了才会打开自己。','感情上比较慢热，思想独立，不轻易被情绪左右，需要有共同精神世界的人才能走近。'],
+  正印:  ['感情中有很强的依赖感和被保护的需求，在温暖安稳的关系里才能充分绽放，需要情感上有力量的人。','感情中需要被理解和支持，重视情感上的安全感，适合遇到真正懂得欣赏和包容您的人。'],
+};
+
+
+// ════════════ 印象关键词库 ════════════
+const IMPR_KW = {
+  drive:    ['自驱','主动','积极','懒','被动','努力','拖延','行动','执行','上进','推动','自律'],
+  emotion:  ['情绪','开心','难过','哭','生气','冷淡','热情','感性','理性','平静','情绪化','抑郁'],
+  social:   ['外向','内向','社交','朋友','热闹','孤僻','安静','存在感','群体','人多','活跃'],
+  authentic:['真诚','虚伪','直接','绕弯子','真实','装','表演','做作','坦诚','心机','目的'],
+  persist:  ['坚持','放弃','固执','灵活','死脑筋','变通','原则','妥协','半途','坚定'],
+  sensitive:['敏感','粗心','细心','在意','小心','大大咧咧','观察','注意','细腻','粗糙'],
+  independent:['独立','依赖','自我','控制','边界','自主','需要人','占有','束缚'],
+  change:   ['变化','稳定','无聊','新鲜','一成不变','喜欢变','固定','守旧','探索'],
+  warm:     ['温和','温柔','冷','强硬','严肃','亲切','距离感','平易','体贴','冷漠'],
+  complex:  ['复杂','简单','深度','肤浅','层次','难懂','好懂','神秘','透明'],
+};
+
+const IMPR_RESP = [
+  {// 甲木
+    drive:"甲木说做就做，不拖沓。如果TA最近显得不够主动，可能是在等一个真正值得全力以赴的理由——一旦找到，会比任何人都冲。",
+    emotion:"甲木情绪来得快去得快，不记仇。表面平静，是因为不擅长细腻表达，但感受是真实的。",
+    social:"甲木不需要太多人，圈子里的每个都是认可的。不合眼缘的人，TA会礼貌但保持距离。",
+    authentic:"甲木说话很直，有时候话有点硬，但反过来你也不用猜TA想什么——说的就是想的。",
+    persist:"认定了的事很难被说服放弃。这种固执背后是原则感，不是顽固。和TA争，不如给TA一个新角度。",
+    sensitive:"甲木不是会注意你换了发型的人，但如果你需要TA，TA会毫不犹豫出现。关心是行动，不是细节。",
+    independent:"天生独立，不太会主动依赖别人，也不喜欢被管着。给TA空间，TA会更自在。",
+    change:"方向感强，一旦定了目标不轻易换。这意味着TA不会为了迎合别人改变自己的节奏。",
+    warm:"甲木不擅长温柔，但会用行动表达。如果TA帮了你、为你出头，比说一百句「我关心你」更真实。",
+    complex:"甲木其实很简单，你看到的基本就是真实的TA。不用想太多，TA没有那么多层。",
+    default:"你观察到的这个感受，放在甲木身上很有意思。甲木外表直接，内心有自己的一套逻辑，你感受到的是表面，TA更深的部分还在等你慢慢发现。"
+  },
+  {// 乙木
+    drive:"乙木的自我驱动都藏在心里，表面看起来悠然，其实一直在生长。不是不努力，是不声张。等你再见到TA时，会突然发现TA已经悄悄走了很远。",
+    emotion:"乙木对情绪很敏感，但不轻易表达。如果TA对你变得平淡，不一定是不在乎，可能是在消化什么委屈——只是不说。",
+    social:"乙木有一段慢热期，刚认识时话不多，熟了之后会展现完全不同的一面。TA现在的克制，是在感受你这个人是否安全。",
+    authentic:"乙木不会假装，但也不当面说破。TA的真实感受藏在细节里——对你的语气、回应的速度、愿不愿意主动找你。",
+    persist:"乙木弯而不折，看起来柔，其实韧性极强。你以为TA放弃了，TA只是换了一条路继续走。",
+    sensitive:"乙木观察力很强，会注意到别人忽略的细节。TA没说，不代表没感受到——只是选择不说。",
+    independent:"乙木需要安全感，但不是依赖。给TA稳定，TA会回报你加倍的体贴。",
+    change:"乙木对环境变化很敏感，适应起来需要一点时间，但一旦稳定下来就会深深扎根。不要突然改变TA的节奏。",
+    warm:"乙木的温柔是真实的，不是表演，但只给真正安全的人。你感受到的那份暖，是TA在信任你。",
+    complex:"乙木表面简单，内心丰富。说话不多，但每句话都经过了很多思考。你觉得TA难懂？那说明TA还没真正对你敞开。",
+    default:"你感受到的这个，放在乙木身上很值得细品。乙木内外有落差，外在呈现的往往只是冰山一角，TA真正的想法和感受比你看到的深很多。"
+  },
+  {// 丙火
+    drive:"丙火热情靠正反馈维持。如果TA最近状态不够主动，可能是缺了一些「被看见」的感觉——给TA一点认可，马上就回来了。",
+    emotion:"丙火情绪来得快，去得也快。刚才还在发火，转眼就没事了。这不是不认真，是TA就是这样——当下真实，但不沉溺。",
+    social:"丙火天生喜欢热闹，需要被关注。如果让TA长时间被忽视，TA会很不自在。不是虚荣，是TA活在「当下」。",
+    authentic:"丙火很难藏心事，喜怒哀乐都写在脸上。TA说什么就是什么，不用猜。有时说话太直，可能不是有意伤人，只是忘了考虑别人感受。",
+    persist:"丙火开始一件事时满腔热血，需要不断的成就感来维持。帮TA把大目标分成小目标，每一步都给反馈，会好很多。",
+    sensitive:"丙火不是很细腻，有时会忽略别人的小情绪，但出发点永远是好的。直接告诉TA你需要什么，TA会立刻调整。",
+    independent:"丙火慷慨，喜欢给予，但有时边界感差，容易过度介入。不是坏意，是TA认为「帮你就是关心你」。",
+    change:"丙火喜欢新鲜感，重复的事做久了会疲惫。不是三心二意，只是需要变化来保持活力。",
+    warm:"丙火的热情是真实的，对你好不是算计，就是单纯想对你好。只是有时热情过了头，你需要温柔地设边界。",
+    complex:"丙火很好懂——内心基本等于外表。看起来阳光，就是真的阳光。不需要想太多层。",
+    default:"你感受到的这个，在丙火身上很典型。丙火活在当下，TA的行为很多时候是直接反应，不一定有很深的考量，但真实度很高。"
+  },
+  {// 丁火
+    drive:"丁火的驱动力来自深度投入。一旦TA真正在意一件事，会反复钻研，旁人叫不动——不是不努力，是TA的燃烧方式不一样。",
+    emotion:"丁火表面平静，内心一直在运转。情绪不轻易外露，但感受不浅。有时候你需要主动问一句「你还好吗」，TA才会说真的。",
+    social:"丁火社交后需要独处来恢复能量，不是冷漠，是需要消化。给TA一段静默的时间，比硬拉TA出去热闹更有用。",
+    authentic:"丁火不会表演，但会观察。说话不多，但每句话都是想清楚了才说的。如果TA不说话，说明TA还在看你。",
+    persist:"丁火一旦投入，会反复钻研不达目的不罢休。有时需要一个人轻轻拉一下，告诉TA「先放一放」。",
+    sensitive:"丁火感知力极强，会注意到别人忽略的细节。TA对你用心的哪些地方，TA都看见了——只是没说。",
+    independent:"丁火喜欢一段时间的独处，但不是拒绝你。不打扰，然后等TA主动找你，是最好的相处方式。",
+    change:"丁火喜欢深耕一个方向，不喜欢频繁切换。给TA稳定的空间，TA会在里面开出很深的东西。",
+    warm:"丁火的温暖是私密的，不会对每个人都如此。如果TA对你细致入微，说明TA真的在意你，这份温柔不是随便给的。",
+    complex:"丁火有层次，你感受到的只是外层。TA的内心比你看到的丰富很多，需要时间和信任才会慢慢展开。",
+    default:"你感受到的这个，在丁火身上值得深思。丁火内外有落差，外在呈现的往往只是冰山一角，真正的感受都沉在水面以下。"
+  },
+  {// 戊土
+    drive:"戊土行动慢，但结果扎实。不是没有驱动力，是节奏本来就比别人慢。催急了反而变慢，给时间，TA的结果往往比「快」的人更可靠。",
+    emotion:"戊土情绪不外露，但不代表没有感受。情感深沉，不善于表达，但你在TA眼里的位置不会因为沉默而降低。",
+    social:"戊土不是社交型，但到了一个环境，总会是那个让大家觉得「稳」的人。不显山露水，但存在感很强。",
+    authentic:"戊土说话不多，但说出来的都是真心话。TA不会为了场面说违心的话——如果TA给你肯定，那是真的。",
+    persist:"戊土一旦决定了，就会踏实执行，不轻易放弃。不是固执，是「开始了就要做完」，这是骨子里的责任感。",
+    sensitive:"戊土不是细腻型，可能不会注意到你细小的情绪变化，但如果你直接告诉TA你需要什么，TA会认真对待。",
+    independent:"戊土很独立，习惯自己承担，不太会主动求助，也不喜欢被过度关心——尊重TA的节奏比什么都重要。",
+    change:"戊土喜欢稳定，不喜欢突然的变化。如果需要改变，给TA足够的适应时间，别强行推着走。",
+    warm:"戊土的关心藏在行动里——帮了你、记住了你说过的事、在你需要时出现，这就是TA的方式。语言是TA的弱项，但行动是真的。",
+    complex:"戊土看起来简单，其实有自己的原则和底线，只是不轻易说出来。平静的外表下是很深的判断力。",
+    default:"你感受到的这个，在戊土身上很有意思。戊土稳重低调，不轻易表达，但TA对你的判断比你想象中清晰得多。"
+  },
+  {// 己土
+    drive:"己土的自驱力是内在的、安静的，不喜欢张扬。TA可能在你看不见的地方一直在努力，只是不需要你来见证这个过程。",
+    emotion:"己土情绪丰富，但藏得深。会把一件事反复咀嚼很久，不轻易说出来。如果TA有点走神，那可能是某件事让TA在心里运转了很久了。",
+    social:"己土在亲近的人面前会很黏，但在陌生人面前保持距离。TA对你的热情程度，直接代表了对你的信任程度。",
+    authentic:"己土心里话不多，但每一句都很重。TA说出来的，往往是想了很久才决定说的。",
+    persist:"己土容易把事情想复杂，有时会因为太担心出错而迟迟不行动。给TA一个具体的第一步，比鼓励「加油」更有用。",
+    sensitive:"己土非常敏感，一个语气、一个表情都会被TA捕捉到，然后在心里想很久。TA不一定说，但一定有感受。",
+    independent:"己土在亲密关系里需要安全感和存在感。如果TA开始不主动联系，可能是在心里积了什么——主动问「你最近怎么了」，会让TA松口气。",
+    change:"己土喜欢熟悉的节奏，对突然的变化会有点手足无措。给TA时间适应，别催，TA会慢慢调整好的。",
+    warm:"己土极为体贴，习惯把别人放在自己前面。TA照顾了你很多，但自己的需求可能一直藏着。偶尔问问TA「你需要什么」，TA真的需要这句话。",
+    complex:"己土的内心比外表复杂很多。平静背后，可能是TA一直在消化和权衡——TA不是没想法，是太多想法都堵在里面。",
+    default:"你感受到的这个，在己土身上很典型。己土内心戏很多，外表克制，真实的感受和想法需要时间和安全感才会慢慢流露。"
+  },
+  {// 庚金
+    drive:"庚金压力越大越能爆发。如果TA最近状态低迷，可能是暂时找不到值得全力以赴的事——给TA一个具体的挑战，TA会立刻回来。",
+    emotion:"庚金情绪不外露，但内心一直在运作。越平静可能越在发力。如果TA突然沉默，那是在思考，不是在生气。",
+    social:"庚金话少，但说到就做到。不是最热闹的那个，但往往是最可靠的那个。TA不需要存在感，但需要被当一回事。",
+    authentic:"庚金最烦绕弯子，直接说你想要什么，TA能接受得了。反而是暗示和试探让TA不舒服。",
+    persist:"庚金要强，不服输。遇到困难不抱怨，但会沉默然后发力。不要以为TA放弃了——TA只是在重新评估怎么打。",
+    sensitive:"庚金对否定很敏感，但接受对事不对人的批评。说「这件事可以这样改」可以，说「你这个人怎么这样」不行——TA会记很久。",
+    independent:"庚金独立性极强，不喜欢被管。给TA空间和尊重，比任何甜言蜜语都有效。",
+    change:"庚金有自己的原则，不会轻易改变立场。但如果你用实力和道理说服了TA，TA会认。",
+    warm:"庚金的关心是行动型的——TA帮你做事，就是TA喜欢你的方式。不要期待TA说「我很关心你」，看TA做了什么。",
+    complex:"庚金其实很直，没有那么多层。TA是什么样就是什么样，不会伪装。你觉得TA复杂，可能是因为不轻易开口。",
+    default:"你感受到的这个，在庚金身上很有道理。庚金刀一样的直接，内心有一套坚不可摧的标准，TA的行为都有自己的逻辑，不一定马上说，但一定有。"
+  },
+  {// 辛金
+    drive:"辛金有很强的自我要求，觉得自己永远可以更好。看起来慢，是因为在追求「对」，不只是「快」。不要催，给TA空间打磨，结果会让你惊喜。",
+    emotion:"辛金非常敏感，会把一句话放在心里很久。外表不动声色，内心早就分析了很多遍。如果TA没有反应，不一定是没感觉——可能感觉太多不知道怎么说。",
+    social:"辛金对质感有要求，进入圈子会先观察再行动。如果TA愿意主动和你说话，说明TA觉得你值得。",
+    authentic:"辛金嘴上不说，但心里一直在评估。给TA具体的肯定，比问TA「你觉得怎么样」更有效。",
+    persist:"辛金自律，对自己严格，有时候严格到有点苛刻。如果你能帮TA轻松一点——「够好了，不用再追求完美了」——会是一份真正的礼物。",
+    sensitive:"辛金细节雷达全开，一个眼神一个语气都逃不过TA。当众批评TA，TA会记很久——批评要私下说，肯定要公开说。",
+    independent:"辛金自尊心强，不喜欢欠人情，也不喜欢被怜悯。尊重TA的独立，给TA具体的肯定，而不是笼统的「你很棒」。",
+    change:"辛金对环境和细节都有要求，适应变化需要一点时间。但一旦调整好，会比任何人都讲究。",
+    warm:"辛金的温暖是精致的、私密的。TA为你做的那些小事，是真的在用心。别觉得理所当然，记得说谢谢。",
+    complex:"辛金确实有层次——表面克制，内心丰富，自尊是保护壳。要走进TA的世界，需要耐心和细心。",
+    default:"你感受到的这个，在辛金身上很值得关注。辛金精致敏锐，表面平静，其实一直在打分——你给TA的感受比你以为的重要很多。"
+  },
+  {// 壬水
+    drive:"壬水想法多，能量旺，但容易被下一个更有趣的事分散注意力。不是不努力，是注意力太贵了，分散了。给TA一个具体任务，比告诉TA「认真点」有效十倍。",
+    emotion:"壬水情绪表达快，转换也快。刚才说了什么「严重」的话，可能已经忘了。TA不是不认真，只是活在当下，说完就是说完了。",
+    social:"壬水在人群里如鱼得水，认识新朋友是享受。如果TA话特别多，是因为脑子里东西太多了，忍不住说。",
+    authentic:"壬水直接表达，不拐弯，有时说话跳跃。说的基本是真实想法，只是可能还没想完就说了——不用全信，但也不用猜。",
+    persist:"壬水开始快，但持续需要新的刺激。帮TA把「有趣」和「重要」连接起来，TA就会坚持得更久。",
+    sensitive:"壬水信息量大，有时说话在别人没跟上的地方已经跳到结论了。不是不体贴，是思维太快。",
+    independent:"壬水需要自由，不喜欢被局限。给TA一定的空间和变化，TA会更自在，但也需要一个能帮TA落地的人。",
+    change:"壬水活在变化里，一成不变让TA窒息。不是三心二意，是TA本来就是这个节奏——和TA在一起，保持新鲜感。",
+    warm:"壬水对人慷慨，喜欢连接，朋友圈广。如果你想让TA真的走进来，就和TA聊想法聊观点，TA最喜欢这个。",
+    complex:"壬水表面简单，其实脑子里一直跑着好几个频道。慢下来和TA聊，会发现TA比表面有料得多。",
+    default:"你感受到的这个，在壬水身上很有意思。壬水信息量大、随机应变，TA的行为背后经常有一套快速运转的逻辑，只是不一定说出来。"
+  },
+  {// 癸水
+    drive:"癸水的驱动是内在的，不张扬。TA可能一直在以自己的节奏成长，只是不声张。给TA安静的空间，不要催，TA会以自己的方式走到很深的地方。",
+    emotion:"癸水感知力极强，情绪丰富但藏得深。表面安静，内心可能在处理很多事。如果TA突然沉默，是在想很多，不是不理你。",
+    social:"癸水慢热，需要时间建立信任。如果TA开始主动找你，那是一个很重要的信号——TA认为你是安全的人。",
+    authentic:"癸水真诚，但不轻易说。TA能感受到别人的真假，自己也不愿意假装。TA沉默不是冷漠，是在想要不要说、怎么说。",
+    persist:"癸水一旦建立了信任和连接，会非常忠诚。TA不轻易打开，但一旦打开就是全心全意。",
+    sensitive:"癸水感知力像雷达，一直在默默扫描周围。氛围有什么变化，TA第一个感觉到，只是不一定说出来。",
+    independent:"癸水需要安静的时间来沉淀，不是拒绝你。主动走进TA的世界，问TA在想什么，比等TA开口要有效。",
+    change:"癸水不喜欢被逼着快速做决定，需要时间在安静里思考清楚。给TA思考的空间，比催TA更有效。",
+    warm:"癸水的温暖深沉持久，不是那种表面的热情。TA一旦在乎你，会以非常细腻的方式照顾你——注意那些小细节。",
+    complex:"癸水内心世界极为丰富，外表说的话只是冰山一角。和TA在一起，要学会听TA没说出口的部分。",
+    default:"你感受到的这个，在癸水身上值得细品。癸水感性深邃，内心世界非常丰富，TA真正的想法和感受，往往比TA说出来的深很多。"
+  }
+];
+
+function analyzeImpression(text, dmIdx){
+  if(dmIdx===null||dmIdx===undefined) return '添加TA的生日后，Growth Log 可以根据TA的日主给出更准确的解读。';
+  const t=text.toLowerCase();
+  for(const [cat,words] of Object.entries(IMPR_KW)){
+    if(words.some(w=>t.includes(w))){
+      const r=IMPR_RESP[dmIdx];
+      if(r&&r[cat]) return r[cat];
+    }
+  }
+  const r=IMPR_RESP[dmIdx];
+  return r?r.default:'你的感受很真实，和TA多相处一段时间，会对这个特质有更清晰的理解。';
+}
+
+// ════════════ STATE ════════════
+let curPerson=null, fragType='text', fragImg=null, curFeel='😊', personTab='feeling';
+let tmpPhoto={me:null,new:null}, editMode=false, fragOpen=false;
+let selMeGender='女', selNewGender='女';
+
+// ════════════ UTILS ════════════
+function pickGender(scope, el){
+  const row=document.getElementById(scope==='me'?'meGenderRow':'newGenderRow');
+  row.querySelectorAll('.gender-opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  if(scope==='me') selMeGender=el.dataset.v;
+  else selNewGender=el.dataset.v;
+}
+function setGenderUI(scope, val){
+  const row=document.getElementById(scope==='me'?'meGenderRow':'newGenderRow');
+  row.querySelectorAll('.gender-opt').forEach(o=>o.classList.toggle('sel', o.dataset.v===val));
+  if(scope==='me') selMeGender=val;
+  else selNewGender=val;
+}
+function uid(){ return 'i'+Date.now()+Math.random().toString(36).slice(2); }
+function fmtDate(s){ if(!s) return ''; const d=new Date(s); return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`; }
+function nowStr(){ const n=new Date(); return `${n.getFullYear()}.${n.getMonth()+1}.${n.getDate()} ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2400); }
+const FAMILY_RELS=['家人','爸爸','妈妈','爷爷','奶奶','姥爷','姥姥','哥哥','姐姐','弟弟','妹妹','其他家人'];
+const NON_FAMILY=['有好感的人','爱豆','新朋友','朋友','恋人','同事'];
+function isFamily(r, customFamily=false){ return customFamily || FAMILY_RELS.includes(r); }
+function relCls(r, customFamily=false){
+  if(r==='有好感的人') return 'rt-crush';
+  if(r==='爱豆') return 'rt-idol';
+  if(r==='新朋友') return 'rt-new';
+  if(r==='朋友') return 'rt-friend';
+  if(r==='恋人') return 'rt-lover';
+  if(r==='同事') return 'rt-colleague';
+  if(isFamily(r, customFamily)) return 'rt-family';
+  return 'rt-friend';
+}
+function personInitial(name){
+  if(!name) return '?';
+  return name.charAt(0);
+}
+function defaultAvaBg(r, customFamily=false){
+  if(r==='恋人') return '#fde8e8';
+  if(r==='有好感的人') return '#fde8f3';
+  if(r==='爱豆') return '#f3e8fd';
+  if(r==='同事') return '#f0edf8';
+  if(isFamily(r,customFamily)) return 'var(--warm)';
+  return 'var(--accent-lt)';
+}
+function defaultAvaColor(r, customFamily=false){
+  if(r==='恋人') return '#d06060';
+  if(r==='有好感的人') return '#c96090';
+  if(r==='爱豆') return '#9060c9';
+  if(r==='同事') return '#7b6db3';
+  if(isFamily(r,customFamily)) return 'var(--warm2)';
+  return 'var(--accent)';
+}
+function getRelCtx(r){
+  if(r==='恋人') return {h:'✦ 你们之间 · 恋爱关系',ml:'感情中容易产生的误解',tl:'让感情更稳固的方式'};
+  if(r==='同事') return {h:'✦ 你们之间 · 职场关系',ml:'工作中容易出现的摩擦',tl:'合作更顺畅的建议'};
+  if(r==='有好感的人') return {h:'✦ 你们之间 · 有好感',ml:'可能让TA对你产生疑惑的地方',tl:'如何让TA更了解真实的你'};
+  if(r==='爱豆') return {h:'✦ 关于这个人 · 爱豆',ml:'欣赏TA时容易产生的盲点',tl:'如何在欣赏的同时保持自我'};
+  if(isFamily(r)){ const n=r==='家人'?'家庭':r; return {h:`✦ 你们之间 · ${n}`,ml:'家庭相处中容易出现的隔阂',tl:'让这段关系更温暖的方式'}; }
+  return {h:'✦ 你们之间',ml:'容易互相误会什么',tl:'和TA相处更舒服的建议'};
+}
+function openView(id){ document.getElementById(id).classList.add('open'); }
+function closeView(id){ document.getElementById(id).classList.remove('open'); }
+function bgClose(id,e){ if(e.target===e.currentTarget) document.getElementById(id).classList.remove('open'); }
+
+// ════════════ TAB SWITCHING ════════════
+let curTab='profile';
+function switchTab(tab){
+  curTab=tab;
+  try{localStorage.setItem('gl_tab',tab);}catch(e){}
+  try{localStorage.setItem('gl_tab',tab);}catch(e){}
+  document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  const capTab=tab.charAt(0).toUpperCase()+tab.slice(1);
+  document.getElementById('tab'+capTab).classList.add('active');
+  document.getElementById('nav'+capTab).classList.add('active');
+  if(tab==='profile') renderProfileTab();
+  if(tab==='circle') renderCircleTab();
+  if(tab==='settings') renderSettingsTab();
+}
+
+// ════════════ PROFILE TAB ════════════
+function renderProfileTab(){
+  const me=D.me;
+  const el=document.getElementById('profileContent');
+  if(!me.name && !me.birthday){
+    el.innerHTML=`<div style="text-align:center;padding:70px 24px 20px;color:var(--muted)">
+      <div style="font-size:52px;margin-bottom:16px">🪴</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:8px;color:var(--text)">还没有设置档案</div>
+      <div style="font-size:13px;line-height:1.9">点击右上角编辑<br>填写名字和生日，生成专属的八字分析</div>
+    </div>`;
+    return;
+  }
+  const meInitial=me.name?`<span style="font-size:32px;font-weight:800;color:var(--accent)">${me.name.charAt(0)}</span>`:'<span style="font-size:28px;color:var(--muted)">·</span>';
+  const photoH=me.photo?`<img src="${me.photo}" alt="">`:meInitial;
+  const analysisH=me.birthday?buildAnalysisHTML(me.birthday,null,null,me.gender||''):'';
+  el.innerHTML=`
+    <div style="text-align:center;padding:28px 20px 16px">
+      <div class="ph-photo" style="margin:0 auto 14px" onclick="openMyProfile()">
+        ${photoH}<div class="ph-overlay">📷</div>
+      </div>
+      <div style="font-size:22px;font-weight:700;margin-bottom:3px">${me.name||''}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${me.birthday?fmtDate(me.birthday):''}</div>
+      ${me.gender?`<span class="gender-badge" style="font-size:12px">${me.gender==='女'?'👩 女':'👨 男'}</span>`:''}
+    </div>
+    <div style="padding:0 15px 90px">${analysisH}</div>`;
+}
+
+// ════════════ CIRCLE TAB ════════════
+function renderCircleTab(){
+  const el=document.getElementById('circleContent');
+  const cards=D.people.map(p=>{
+    const cf=p.customFamily||false;
+    const avaH=p.photo?`<img src="${p.photo}" alt="">`:`<span style="font-size:20px;font-weight:700;color:${defaultAvaColor(p.relation,cf)}">${personInitial(p.name)}</span>`;
+    let dmBadge='', tagline='';
+    if(p.birthday){
+      const pp=calcPillars(p.birthday);
+      dmBadge=`<span class="p-dm">${STEMS[pp.day.stem]}${EL_NAME[ST_ELEM[pp.day.stem]]}</span>`;
+      tagline=DM_DATA[pp.day.stem].tagline;
+    }
+    return `<div class="circle-card" onclick="openPerson('${p.id}')">
+      <div class="circle-ava" style="${!p.photo?`background:${defaultAvaBg(p.relation,cf)}`:''}"> ${avaH}</div>
+      <div class="circle-name">${p.name||'未命名'}</div>
+      ${tagline?`<div class="circle-tagline">${tagline}</div>`:''}
+      <div class="circle-tags">
+        <span class="rel-tag ${relCls(p.relation,cf)}">${p.relation}</span>
+        ${dmBadge}
+        ${p.gender?`<span class="gender-badge">${p.gender}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  if(!D.people.length){
+    el.innerHTML=`<div style="text-align:center;padding:70px 20px;color:var(--muted)">
+      <div style="font-size:40px;margin-bottom:12px">🌿</div>
+      <div style="font-size:14px;line-height:1.9">还没有添加任何人<br>点击右上角开始记录</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML=`<div class="circle-grid">${cards}</div>`;
+}
+
+function renderAll(){
+  if(curTab==='profile') renderProfileTab();
+  if(curTab==='circle') renderCircleTab();
+}
+
+// ════════════ MY PROFILE ════════════
+function openMyProfile(){
+  const me=D.me;
+  document.getElementById('meName').value=me.name||'';
+  setDateInput('meBday',me.birthday||'');
+  setGenderUI('me', me.gender??'女');
+  const inner=document.getElementById('mePhotoInner');
+  const placeholder=me.name?`<span style="font-size:28px;font-weight:800;color:var(--accent)">${me.name.charAt(0)}</span>`:'<span style="font-size:22px;color:var(--muted)">·</span>';
+  inner.innerHTML=me.photo?`<img src="${me.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:placeholder;
+  tmpPhoto.me=me.photo||null;
+  renderMeBz();
+  openView('vMe');
+}
+function renderMeBz(){
+  const bday=document.getElementById('meBday').value;
+  const block=document.getElementById('meBzBlock');
+  if(!bday){ block.innerHTML=''; return; }
+  block.innerHTML=buildAnalysisHTML(bday, null, null, selMeGender);
+}
+async function saveMe(){
+  D.me.name=document.getElementById('meName').value.trim();
+  D.me.birthday=document.getElementById('meBday').value;
+  D.me.gender=selMeGender;
+  if(tmpPhoto.me!==undefined) D.me.photo=tmpPhoto.me;
+  const{error}=await _SB.from('profiles').upsert({
+    id:_user.id, name:D.me.name,
+    birthday:D.me.birthday||null, gender:D.me.gender,
+    photo_url:D.me.photo, updated_at:new Date().toISOString()
+  });
+  if(error){toast('保存失败，请重试');return;}
+  renderProfileTab(); closeView('vMe'); toast('档案已保存 ✦');
+}
+
+// ════════════ BUILD ANALYSIS HTML ════════════
+function buildAnalysisHTML(bday, meBday, relation, gender){
+  if(!bday) return `<div class="analysis-block"><div class="no-bday-hint">添加生日后<br>可以生成完整的日主性格分析 ✨</div></div>`;
+  const p=calcPillars(bday);
+  const dm=DM_DATA[p.day.stem];
+  const dmName=STEMS[p.day.stem]+EL_NAME[ST_ELEM[p.day.stem]];
+  const yyEl=YY_NAME[ST_YY[p.day.stem]]+EL_NAME[ST_ELEM[p.day.stem]];
+
+  // Day branch TG
+  const dbMainStem=BR_MAIN[p.day.branch];
+  const dbTg=tenGod(p.day.stem, dbMainStem);
+  const dbPillarStr=`日支${BRANCHES[p.day.branch]}（${STEMS[dbMainStem]}/${dbTg}）`;
+  // Gender-specific day branch note (配偶宫)
+  const genNote = gender && TG_INNER_GEN[dbTg]
+    ? (gender==='女' ? TG_INNER_GEN[dbTg][0] : TG_INNER_GEN[dbTg][1])
+    : null;
+
+  // Month stem TG
+  const msTg=tenGod(p.day.stem, p.month.stem);
+  const msPillarStr=`月干${STEMS[p.month.stem]}（${msTg}）`;
+
+  // Year stem TG
+  const ysTg=tenGod(p.day.stem, p.year.stem);
+  const ysPillarStr=`年干${STEMS[p.year.stem]}（${ysTg}）`;
+
+  const coreItems=dm.core.map(c=>`<div class="trait-item"><div class="trait-title">・${c.t}</div><div class="trait-desc">${c.d}</div></div>`).join('');
+
+  // Compat section (only if me has birthday and this is someone else)
+  let compatHTML='';
+  if(meBday && bday && relation){
+    const meP=calcPillars(meBday);
+    const comp=CT[ck(meP.day.stem, p.day.stem)];
+    if(comp){
+      const meDm=STEMS[meP.day.stem]+EL_NAME[ST_ELEM[meP.day.stem]];
+      const ctx=getRelCtx(relation);
+      compatHTML=`<div class="compat-block">
+        <h3>${ctx.h} · ${meDm} &amp; ${dmName}</h3>
+        <div class="adv-item">
+          <div class="adv-label">⚡ ${ctx.ml}</div>
+          <div class="adv-text">${comp.mis}</div>
+        </div>
+        <div class="adv-item" style="margin-bottom:0">
+          <div class="adv-label">💡 ${ctx.tl}</div>
+          <div class="adv-text">${comp.tips}</div>
+        </div>
+      </div>`;
+    }
+  } else if(meBday===null && relation){
+    // me has no birthday set
+    compatHTML=`<div class="compat-block" style="border-style:dashed"><div class="compat-hint">设置你的生日后<br>可以看到你们之间的相处分析 ✨</div></div>`;
+  }
+
+  return `
+  <div class="analysis-block">
+    <div class="analysis-top">
+      <div class="dm-label">✦ 日主分析</div>
+      <div class="dm-title">${dmName}</div>
+      <div class="dm-headline">${yyEl} · ${dm.headline}</div>
+    </div>
+    <div class="analysis-section">
+      <div class="sec-header">性格本质</div>
+      ${coreItems}
+    </div>
+    <div class="analysis-section">
+      <div class="sec-header">内心世界 <span class="tag">${dbPillarStr}</span></div>
+      <div class="tg-box">
+        <div class="tg-label">日支 · ${dbTg}</div>
+        <div class="tg-desc">${TG_INNER[dbTg]||''}</div>
+        ${genNote ? `<div class="tg-desc" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(196,151,63,.18)"><span style="font-size:10.5px;font-weight:700;color:var(--warm2);margin-right:4px">${gender==='女'?'💗':'💙'} 感情倾向</span>${genNote}</div>` : ''}
+      </div>
+    </div>
+    <div class="analysis-section">
+      <div class="sec-header">才华气场 <span class="tag">${msPillarStr}</span></div>
+      <div class="tg-box"><div class="tg-label">月干 · ${msTg}</div><div class="tg-desc">${TG_TALENT[msTg]||''}</div></div>
+    </div>
+    <div class="analysis-section">
+      <div class="sec-header">人生底色 <span class="tag">${ysPillarStr}</span></div>
+      <div class="tg-box"><div class="tg-label">年干 · ${ysTg}</div><div class="tg-desc">${TG_BG[ysTg]||''}</div></div>
+    </div>
+    <div class="analysis-section">
+      <div class="sec-header">生活体感</div>
+      <div class="vibe-list">
+        ${dm.vibes.map(v=>`<div class="vibe-item"><span class="vibe-tag">${v.t}</span><span class="vibe-dot">·</span><span class="vibe-desc">${v.d}</span></div>`).join('')}
+      </div>
+    </div>
+    <div class="analysis-section">
+      <div class="sec-header">相处贴士</div>
+      <div class="tips-box"><div class="tips-text">${dm.tips}</div></div>
+    </div>
+  </div>
+  ${compatHTML}`;
+}
+
+
+// ════════════ PERSON TABS ════════════
+function switchPersonTab(tab){
+  personTab=tab;
+  ['analysis','feeling','frags'].forEach(t=>{
+    const el=document.getElementById('ptab-'+t);
+    if(el) el.classList.toggle('active',t===tab);
+  });
+  renderPerson();
+}
+
+async function saveImpression(){
+  if(!curPerson) return;
+  const txt=document.getElementById('impressionTxt').value.trim();
+  if(!txt){toast('请写下你的感受');return;}
+  const dateStr=nowStr();
+  const{data,error}=await _SB.from('fragments').insert({
+    person_id:curPerson.id,user_id:_user.id,
+    type:'impression',content:txt,frag_date:dateStr
+  }).select().single();
+  if(error||!data){toast('保存失败');return;}
+  if(!curPerson.fragments) curPerson.fragments=[];
+  curPerson.fragments.push({id:data.id,type:'impression',content:txt,emoji:'',date:dateStr});
+  document.getElementById('impressionTxt').value='';
+  renderPerson();
+  toast('感受已记录 ✦');
+}
+
+async function delImpression(fid){
+  showConfirm('删除这条感受记录？',async()=>{
+    const{error}=await _SB.from('fragments').delete().eq('id',fid);
+    if(error){toast('删除失败');return;}
+    curPerson.fragments=(curPerson.fragments||[]).filter(f=>f.id!==fid);
+    renderPerson(); toast('已删除');
+  });
+}
+
+// ════════════ PERSON DETAIL ════════════
+function openPerson(id){
+  curPerson=D.people.find(p=>p.id===id);
+  if(!curPerson) return;
+  fragOpen=false; personTab='analysis';
+  renderPerson();
+  openView('vPerson');
+}
+function renderPerson(){
+  const p=curPerson, me=D.me, cf=p.customFamily||false;
+  const photoH=p.photo
+    ?`<img src="${p.photo}" alt="">`
+    :`<span style="font-size:32px;font-weight:800;color:${defaultAvaColor(p.relation,cf)}">${personInitial(p.name)}</span>`;
+
+  let dmIdx=null;
+  if(p.birthday){ try{ dmIdx=calcPillars(p.birthday).day.stem; }catch{} }
+
+  const heroHTML=`
+    <div class="p-hero">
+      <div class="ph-photo" onclick="document.getElementById('fPerson').click()" style="${!p.photo?`background:${defaultAvaBg(p.relation,cf)}`:''}">
+        ${photoH}<div class="ph-overlay">📷</div>
+      </div>
+      <div class="ph-name">${p.name||'未命名'}</div>
+      <div class="ph-bday">${p.birthday?fmtDate(p.birthday):'未设置生日'}</div>
+      <div style="margin-top:6px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap">
+        <span class="rel-tag ${relCls(p.relation,cf)}">${p.relation}</span>
+        ${p.gender?`<span class="gender-badge">${p.gender==='女'?'👩 女':'👨 男'}</span>`:''}
+      </div>
+    </div>`;
+
+  const allFrags=p.fragments||[];
+  const impressions=allFrags.filter(f=>f.type==='impression').slice().reverse();
+  const frags=allFrags.filter(f=>f.type!=='impression').slice().reverse();
+
+  let tabContent='';
+
+  if(personTab==='analysis'){
+    const meBday=me.birthday||null;
+    tabContent=buildAnalysisHTML(p.birthday, meBday, p.relation, p.gender||'')
+      +`<div class="delete-zone"><button class="delete-btn" onclick="askDelete()">🗑 删除此人的档案</button></div>`;
+  }
+
+  else if(personTab==='feeling'){
+    const imprList=impressions.length
+      ?impressions.map(im=>`
+        <div class="impr-entry">
+          <div style="display:flex;align-items:flex-start;gap:6px">
+            <div class="impr-user-bubble" style="flex:1">${im.content.replace(/\n/g,'<br>')}</div>
+            <button class="del-impr" onclick="delImpression('${im.id}')">✕</button>
+          </div>
+          <div class="impr-response-wrap">
+            <div class="impr-response-label">✦ Growth Log 解读</div>
+            <div class="impr-response-text">${analyzeImpression(im.content,dmIdx)}</div>
+          </div>
+          <div class="impr-date">${im.date}</div>
+        </div>`).join('')
+      :`<div class="impr-empty">写下你对TA的直觉感受<br>Growth Log 会从八字角度给你解读 🌿</div>`;
+
+    tabContent=`
+      <div class="impr-input-wrap">
+        <div class="impr-input-label">我感觉Ta...</div>
+        <textarea class="ft" id="impressionTxt" placeholder="比如：我感觉TA最近不太有活力，好像有点被动…" style="min-height:80px;margin-bottom:10px"></textarea>
+        <button class="sub-btn" onclick="saveImpression()" style="margin-top:0">记录感受</button>
+      </div>
+      ${imprList}`;
+  }
+
+  else if(personTab==='frags'){
+    const fragCount=frags.length;
+    let fragsBody='';
+    if(!fragCount){
+      fragsBody=`<div class="add-first">还没有记录，点击下方按钮开始 🌿</div>`;
+    } else {
+      fragsBody=frags.map(f=>{
+        let inner='';
+        if(f.type==='text') inner=`<div class="frag-bubble">${f.content.replace(/\n/g,'<br>')}</div>`;
+        else if(f.type==='image'){ const full=f.emoji&&f.emoji.startsWith('data:')?f.emoji:f.content; inner=`<div class="frag-img-wrap" onclick="openLightbox('${full}')"><img src="${f.content}" alt="" class="frag-img-thumb"><span class="frag-img-expand">点击查看</span></div>`; }
+        else inner=`<div class="frag-bubble feel"><span class="feel-ico">${f.emoji}</span>${f.content?`<span class="feel-txt">${f.content.replace(/\n/g,'<br>')}</span>`:''}`;
+        return `<div class="frag">${inner}<div class="frag-date">${f.date}</div><button class="del-frag" onclick="delFrag('${f.id}')">✕</button></div>`;
+      }).join('');
+    }
+    tabContent=`
+      <div style="margin-bottom:12px">${fragsBody}</div>
+      <button class="frag-add-btn" onclick="openAddFrag()">＋ 添加记录</button>
+      <div class="delete-zone" style="margin-top:8px"><button class="delete-btn" onclick="askDelete()">🗑 删除此人的档案</button></div>`;
+  }
+
+  document.getElementById('vPersonBody').innerHTML=heroHTML+tabContent;
+
+  // FAB 始终隐藏（用内嵌按钮代替）
+  const fab=document.querySelector('#vPerson .fab');
+  if(fab) fab.style.display='none';
+}
+
+function toggleFrags(el){
+  fragOpen=!fragOpen;
+  el.querySelector('.frag-toggle-arr').classList.toggle('open',fragOpen);
+  el.nextElementSibling.classList.toggle('open',fragOpen);
+}
+
+async function delFrag(fid){
+  showConfirm('删除这条记录？',async()=>{
+    const{error}=await _SB.from('fragments').delete().eq('id',fid);
+    if(error){toast('删除失败');return;}
+    curPerson.fragments=(curPerson.fragments||[]).filter(f=>f.id!==fid);
+    renderPerson(); toast('已删除');
+  });
+}
+
+// ════════════ DELETE PERSON ════════════
+function askDelete(){ document.getElementById('confirmDel').classList.add('open'); }
+function closeConfirm(){ document.getElementById('confirmDel').classList.remove('open'); }
+async function confirmDelete(){
+  if(!curPerson) return;
+  const{error}=await _SB.from('people').delete().eq('id',curPerson.id);
+  if(error){toast('删除失败');return;}
+  D.people=D.people.filter(p=>p.id!==curPerson.id);
+  renderCircleTab();
+  document.getElementById('confirmDel').classList.remove('open');
+  closeView('vPerson');
+  toast('已删除档案');
+}
+
+// ════════════ ADD / EDIT PERSON ════════════
+let selRel='有好感的人', selCustomFamily=false;
+function pickRel(el, openFamily=false){
+  document.querySelectorAll('.rel-opt').forEach(o=>{ o.classList.remove('sel','family-parent'); });
+  document.querySelectorAll('.family-sub-opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  selRel = el.dataset.v;
+  const fSub = document.getElementById('familySub');
+  if(openFamily){ fSub.classList.add('open'); }
+  else { fSub.classList.remove('open'); }
+}
+function pickFamilySub(el){
+  document.querySelectorAll('.family-sub-opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('familyMainOpt').classList.add('family-parent');
+  const val=el.dataset.v;
+  const wrap=document.getElementById('familyCustomWrap');
+  if(val==='__other__'){
+    wrap.classList.add('open');
+    selCustomFamily=true;
+    const inp=document.getElementById('familyCustomInput');
+    selRel=inp.value.trim()||'家人';
+    setTimeout(()=>inp.focus(),50);
+  } else {
+    wrap.classList.remove('open');
+    selCustomFamily=false;
+    selRel=val;
+  }
+}
+function setRelUI(val, customFamily=false){
+  document.querySelectorAll('.rel-opt').forEach(o=>{ o.classList.remove('sel','family-parent'); });
+  document.querySelectorAll('.family-sub-opt').forEach(o=>o.classList.remove('sel'));
+  const fSub=document.getElementById('familySub');
+  const wrap=document.getElementById('familyCustomWrap');
+  selCustomFamily=customFamily;
+  if(customFamily){
+    // Custom family: show family sub panel, select "其他", fill custom input
+    document.getElementById('familyMainOpt').classList.add('family-parent');
+    fSub.classList.add('open');
+    wrap.classList.add('open');
+    document.querySelector('.family-sub-opt[data-v="__other__"]').classList.add('sel');
+    document.getElementById('familyCustomInput').value=val;
+  } else if(isFamily(val) && val!=='家人'){
+    document.getElementById('familyMainOpt').classList.add('family-parent');
+    fSub.classList.add('open');
+    wrap.classList.remove('open');
+    document.querySelectorAll('.family-sub-opt').forEach(o=>{ if(o.dataset.v===val) o.classList.add('sel'); });
+  } else {
+    fSub.classList.remove('open');
+    wrap.classList.remove('open');
+    document.querySelectorAll('.rel-opt').forEach(o=>{ if(o.dataset.v===val) o.classList.add('sel'); });
+  }
+  selRel=val;
+}
+function openAddPerson(){
+  editMode=false;
+  document.getElementById('mPersonTitle').textContent='添加新的人';
+  document.getElementById('newName').value='';
+  setDateInput('newBday','');
+  document.getElementById('newPhotoInner').innerHTML='+';
+  tmpPhoto.new=null;
+  document.getElementById('familyCustomInput').value='';
+  setRelUI('有好感的人');
+  setGenderUI('new','女');
+  document.getElementById('mPerson').classList.add('open');
+}
+function openEditPerson(){
+  editMode=true; const p=curPerson;
+  document.getElementById('mPersonTitle').textContent='编辑档案';
+  document.getElementById('newName').value=p.name||'';
+  setDateInput('newBday',p.birthday||'');
+  const inner=document.getElementById('newPhotoInner');
+  if(p.photo){ inner.innerHTML=`<img src="${p.photo}" style="width:78px;height:78px;border-radius:50%;object-fit:cover">`; tmpPhoto.new=p.photo; }
+  else { inner.innerHTML=relEmo(p.relation, p.customFamily); tmpPhoto.new=null; }
+  document.getElementById('familyCustomInput').value=p.customFamily?p.relation:'';
+  setRelUI(p.relation||'有好感的人', p.customFamily||false);
+  setGenderUI('new', p.gender||'女');
+  document.getElementById('mPerson').classList.add('open');
+}
+function relEmo(r, cf=false){
+  const map={'有好感的人':'💗','爱豆':'✨','新朋友':'🌱','朋友':'🤝','恋人':'💑','同事':'💼'};
+  if(map[r]) return `<span style="font-size:28px">${map[r]}</span>`;
+  if(isFamily(r,cf)) return `<span style="font-size:28px">🏡</span>`;
+  return `<span style="font-size:28px;color:var(--muted)">+</span>`;
+}
+async function savePerson(){
+  const name=document.getElementById('newName').value.trim();
+  if(!name){toast('请输入名字');return;}
+  const bday=getBdayVal('newBday');
+  if(editMode&&curPerson){
+    curPerson.name=name;curPerson.birthday=bday;curPerson.relation=selRel;
+    curPerson.gender=selNewGender;curPerson.customFamily=selCustomFamily;
+    if(tmpPhoto.new!==undefined) curPerson.photo=tmpPhoto.new;
+    const{error}=await _SB.from('people').update({
+      name,birthday:bday||null,relation:selRel,gender:selNewGender,
+      custom_family:selCustomFamily,photo_url:curPerson.photo
+    }).eq('id',curPerson.id);
+    if(error){toast('更新失败，请重试');return;}
+    renderCircleTab();renderPerson();
+    document.getElementById('mPerson').classList.remove('open');
+    toast('已更新 ✦');
+  } else {
+    const{data,error}=await _SB.from('people').insert({
+      user_id:_user.id,name,birthday:bday||null,
+      relation:selRel,gender:selNewGender,
+      custom_family:selCustomFamily,photo_url:tmpPhoto.new||null
+    }).select().single();
+    if(error||!data){toast('添加失败，请重试');return;}
+    D.people.push({id:data.id,name,birthday:bday,relation:selRel,
+      gender:selNewGender,customFamily:selCustomFamily,
+      photo:tmpPhoto.new||null,fragments:[]});
+    renderCircleTab();
+    document.getElementById('mPerson').classList.remove('open');
+    toast('已添加 ✨');
+  }
+}
+
+// ════════════ ADD FRAGMENT ════════════
+function openAddFrag(){
+  fragType='text'; fragImg=null; curFeel='😊';
+  document.getElementById('fragTxt').value='';
+  document.getElementById('feelTxt').value='';
+  document.getElementById('imgPrev').style.display='none';
+  document.querySelectorAll('.ft-btn').forEach(b=>b.classList.toggle('sel',b.dataset.t==='text'));
+  document.getElementById('ftText').style.display='block';
+  document.getElementById('ftImg').style.display='none';
+  document.getElementById('ftFeel').style.display='none';
+  document.querySelectorAll('.feel-opt').forEach(o=>o.classList.toggle('sel',o.dataset.e==='😊'));
+  document.getElementById('mFrag').classList.add('open');
+}
+function pickFt(el){
+  document.querySelectorAll('.ft-btn').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel'); fragType=el.dataset.t;
+  document.getElementById('ftText').style.display=fragType==='text'?'block':'none';
+  document.getElementById('ftImg').style.display=fragType==='image'?'block':'none';
+  document.getElementById('ftFeel').style.display=fragType==='feeling'?'block':'none';
+}
+function pickFeel(el){
+  document.querySelectorAll('.feel-opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel'); curFeel=el.dataset.e;
+}
+function handleFragImg(e){
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>{ fragImg=ev.target.result; document.getElementById('imgPrev').style.display='block'; document.getElementById('imgPrevEl').src=fragImg; };
+  r.readAsDataURL(file); e.target.value='';
+}
+async function saveFrag(){
+  if(!curPerson) return;
+  let content='',emoji=null;
+  if(fragType==='text'){content=document.getElementById('fragTxt').value.trim();if(!content){toast('请写点什么');return;}}
+  else if(fragType==='image'){
+    if(!fragImg){toast('请选择图片');return;}
+    toast('处理中...');
+    // 缩略图：极小，列表显示用（~5KB）
+    content=await compressImage(fragImg,120,0.5);
+    // 全图：较清晰，点开查看用（~40KB）
+    emoji=await compressImage(fragImg,700,0.82);
+  }
+  else{emoji=curFeel;content=document.getElementById('feelTxt').value.trim();}
+  const dateStr=nowStr();
+  const{data,error}=await _SB.from('fragments').insert({
+    person_id:curPerson.id,user_id:_user.id,
+    type:fragType,content,emoji,frag_date:dateStr
+  }).select().single();
+  if(error||!data){toast('保存失败');return;}
+  if(!curPerson.fragments) curPerson.fragments=[];
+  curPerson.fragments.push({id:data.id,type:fragType,content,emoji:emoji||'',date:dateStr});
+  renderPerson();
+  document.getElementById('mFrag').classList.remove('open');
+  fragOpen=true; toast('已记录 ✦');
+}
+
+// ════════════ LIGHTBOX ════════════
+function openLightbox(src){
+  document.getElementById('lightboxImg').src=src;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox(){
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lightboxImg').src='';
+}
+
+// ════════════ 照片压缩 ════════════
+function compressImage(dataUrl,maxPx,quality){
+  maxPx=maxPx||400; quality=quality||0.72;
+  return new Promise(function(resolve){
+    var img=new Image();
+    img.onload=function(){
+      var scale=Math.min(1,maxPx/Math.max(img.width,img.height));
+      var canvas=document.createElement('canvas');
+      canvas.width=Math.round(img.width*scale);
+      canvas.height=Math.round(img.height*scale);
+      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      resolve(canvas.toDataURL('image/jpeg',quality));
+    };
+    img.onerror=function(){ resolve(dataUrl); }; // 失败则用原图
+    img.src=dataUrl;
+  });
+}
+
+// ════════════ PHOTO UPLOAD ════════════
+function handlePhoto(e,target){
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    compressImage(ev.target.result).then(function(data){
+    if(target==='me'){
+      tmpPhoto.me=data;
+      // If triggered from settings tab (no slide view open), save directly
+      if(curTab==='settings'){
+        D.me.photo=data;
+        _SB.from('profiles').upsert({id:_user.id,photo_url:data,updated_at:new Date().toISOString()}).then(()=>{});
+        renderSettingsTab(); renderProfileTab(); toast('头像已更新');
+      }
+      const inner=document.getElementById('mePhotoInner');
+      if(inner) inner.innerHTML=`<img src="${data}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    } else if(target==='new'){
+      tmpPhoto.new=data;
+      document.getElementById('newPhotoInner').innerHTML=`<img src="${data}" style="width:78px;height:78px;border-radius:50%;object-fit:cover">`;
+    } else if(target==='person'&&curPerson){
+      curPerson.photo=data;
+        _SB.from('people').update({photo_url:data}).eq('id',curPerson.id).then(()=>{});
+        renderPerson(); renderCircleTab(); toast('照片已更新');
+    }
+    }); // end compressImage
+  };
+  r.readAsDataURL(file); e.target.value='';
+}
+
+// ════════════ SETTINGS TAB ════════════
+function renderSettingsTab(){
+  const me=D.me;
+  const avaH=me.photo
+    ?`<img src="${me.photo}" alt="">`
+    :`<span style="font-size:14px;font-weight:800;color:var(--accent)">${me.name?me.name.charAt(0):'·'}</span>`;
+
+  document.getElementById('settingsContent').innerHTML=`
+    <div class="s-section">
+      <div class="s-title">个人头像</div>
+      <div class="s-item" onclick="document.getElementById('fMe').click()">
+        <div class="s-item-left">
+          <div class="s-ava">${avaH}</div>
+          <div><div class="s-item-label">更换头像</div><div class="s-item-desc">点击上传新的照片</div></div>
+        </div>
+        <div class="s-arr">›</div>
+      </div>
+    </div>
+
+    <div class="s-section">
+      <div class="s-title">账号</div>
+      <div class="s-item" onclick="doSignOut()">
+        <div class="s-item-left">
+          <div class="s-icon">🚪</div>
+          <div><div class="s-item-label">退出登录</div><div class="s-item-desc">${_userEmail||''}</div></div>
+        </div>
+        <div class="s-arr">›</div>
+      </div>
+    </div>
+
+    <div class="s-section">
+      <div class="s-title">数据管理</div>
+      <div class="s-item" onclick="saveFileWithData()" style="border-color:var(--accent);background:var(--accent-lt)">
+        <div class="s-item-left">
+          <div class="s-icon" style="background:var(--accent);color:white">💾</div>
+          <div>
+            <div class="s-item-label" style="color:var(--accent)">保存文件（含数据）</div>
+            <div class="s-item-desc">下载包含所有档案的 HTML 文件，以后从这个文件打开数据永远在</div>
+          </div>
+        </div>
+        <div class="s-arr" style="color:var(--accent)">›</div>
+      </div>
+      <div class="s-item" onclick="openPDFSelector()">
+        <div class="s-item-left">
+          <div class="s-icon">📄</div>
+          <div><div class="s-item-label">导出为 PDF</div><div class="s-item-desc">每人独立一页，含分析和记录</div></div>
+        </div>
+        <div class="s-arr">›</div>
+      </div>
+      <div class="s-item" onclick="exportData()">
+        <div class="s-item-left">
+          <div class="s-icon">📤</div>
+          <div><div class="s-item-label">导出 JSON 备份</div><div class="s-item-desc">用于在另一台设备恢复数据</div></div>
+        </div>
+        <div class="s-arr">›</div>
+      </div>
+      <div class="s-item" onclick="document.getElementById('fImport').click()">
+        <div class="s-item-left">
+          <div class="s-icon">📥</div>
+          <div><div class="s-item-label">导入 JSON 恢复数据</div><div class="s-item-desc">从备份文件恢复所有档案</div></div>
+        </div>
+        <div class="s-arr">›</div>
+      </div>
+      <div class="s-item s-danger" onclick="document.getElementById('confirmClear').classList.add('open')">
+        <div class="s-item-left">
+          <div class="s-icon" style="background:var(--red-lt)">🗑</div>
+          <div><div class="s-item-label">清除所有数据</div><div class="s-item-desc">删除全部档案和记录，无法恢复</div></div>
+        </div>
+        <div class="s-arr">›</div>
+      </div>
+    </div>
+
+    <div class="s-section">
+      <div class="s-title">关于</div>
+      <div class="s-about">
+        <div class="s-about-name">Growth Log</div>
+        <div class="s-about-ver">v1.0 · 数据仅存于本设备</div>
+      </div>
+    </div>`;
+}
+
+// ════════════ DATA EXPORT / CLEAR ════════════
+function exportData(){
+  const json=JSON.stringify(D,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='growth_log_backup.json'; a.click();
+  URL.revokeObjectURL(url);
+  toast('备份已下载 ✦');
+}
+function importData(e){
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const parsed=JSON.parse(ev.target.result);
+      if(!parsed||typeof parsed!=='object'||!Array.isArray(parsed.people)){
+        toast('文件格式不对，请选择正确的备份文件'); return;
+      }
+      D=parsed;
+      save();
+      renderProfileTab(); renderCircleTab(); renderSettingsTab();
+      toast('数据已恢复 ✦');
+    }catch(err){ toast('导入失败，文件可能已损坏'); }
+  };
+  r.readAsText(file);
+  e.target.value='';
+}
+async function confirmClearData(){
+  // 删除 Supabase 里的所有数据
+  await _SB.from('fragments').delete().eq('user_id',_user.id);
+  await _SB.from('people').delete().eq('user_id',_user.id);
+  await _SB.from('profiles').delete().eq('id',_user.id);
+  D={me:{name:'',birthday:'',photo:null,gender:'女'},people:[]};
+  document.getElementById('confirmClear').classList.remove('open');
+  renderProfileTab(); renderCircleTab(); renderSettingsTab();
+  toast('数据已清除');
+}
+
+// ════════════ PIN LOGIC ════════════
+let pinBuffer='', pinMode='verify'; // 'verify' | 'set1' | 'set2'
+let pinFirst='';
+
+function checkPinOnLoad(){
+  const stored=localStorage.getItem('gl_pin');
+  if(!stored) return;
+  pinBuffer=''; pinMode='verify';
+  updatePinDots('pd',0);
+  document.getElementById('pinErr').textContent='';
+  document.getElementById('pinScreen').style.display='flex';
+}
+function enterPin(d){
+  if(pinBuffer.length>=4) return;
+  pinBuffer+=d;
+  updatePinDots('pd',pinBuffer.length);
+  if(pinBuffer.length===4){
+    setTimeout(()=>{
+      const stored=localStorage.getItem('gl_pin');
+      if(pinBuffer===stored){
+        document.getElementById('pinScreen').style.display='none';
+        pinBuffer='';
+      } else {
+        document.getElementById('pinErr').textContent='密码错误，请重试';
+        pinBuffer='';
+        updatePinDots('pd',0);
+      }
+    },200);
+  }
+}
+function deletePin(){
+  if(pinBuffer.length>0){ pinBuffer=pinBuffer.slice(0,-1); updatePinDots('pd',pinBuffer.length); }
+  document.getElementById('pinErr').textContent='';
+}
+
+// PIN setup
+let setupBuf='';
+function togglePin(){
+  const stored=localStorage.getItem('gl_pin');
+  if(stored){
+    localStorage.removeItem('gl_pin');
+    toast('密码已关闭');
+    renderSettingsTab();
+  } else {
+    setupBuf=''; pinFirst='';
+    document.getElementById('pinSetupTitle').textContent='设置访问密码';
+    document.getElementById('pinSetupSub').textContent='请输入 4 位数字密码';
+    document.getElementById('pinSetupErr').textContent='';
+    updatePinDots('spd',0);
+    document.getElementById('mPin').classList.add('open');
+  }
+}
+function enterSetupPin(d){
+  if(setupBuf.length>=4) return;
+  setupBuf+=d;
+  updatePinDots('spd',setupBuf.length);
+  if(setupBuf.length===4){
+    setTimeout(()=>{
+      if(!pinFirst){
+        pinFirst=setupBuf; setupBuf='';
+        document.getElementById('pinSetupTitle').textContent='确认密码';
+        document.getElementById('pinSetupSub').textContent='再次输入密码以确认';
+        updatePinDots('spd',0);
+      } else {
+        if(setupBuf===pinFirst){
+          localStorage.setItem('gl_pin',setupBuf);
+          document.getElementById('mPin').classList.remove('open');
+          setupBuf=''; pinFirst='';
+          renderSettingsTab();
+          toast('密码已设置 🔒');
+        } else {
+          document.getElementById('pinSetupErr').textContent='两次输入不一致，请重新设置';
+          setupBuf=''; pinFirst='';
+          document.getElementById('pinSetupTitle').textContent='设置访问密码';
+          document.getElementById('pinSetupSub').textContent='请重新输入 4 位数字密码';
+          updatePinDots('spd',0);
+        }
+      }
+    },200);
+  }
+}
+function deleteSetupPin(){
+  if(setupBuf.length>0){ setupBuf=setupBuf.slice(0,-1); updatePinDots('spd',setupBuf.length); }
+  document.getElementById('pinSetupErr').textContent='';
+}
+function updatePinDots(prefix,count){
+  for(let i=0;i<4;i++){
+    const el=document.getElementById(prefix+i);
+    if(el) el.classList.toggle('filled',i<count);
+  }
+}
+
+// ════════════ PDF SELECTOR ════════════
+let pdfSelected=new Set();
+
+function openPDFSelector(){
+  if(!D.people.length && !D.me.name && !D.me.birthday){ toast('还没有任何档案'); return; }
+  pdfSelected=new Set();
+  // Default: select all
+  if(D.me.name||D.me.birthday) pdfSelected.add('__me__');
+  D.people.forEach(p=>pdfSelected.add(p.id));
+  renderPDFSelList();
+  document.getElementById('mPdfSel').classList.add('open');
+}
+
+function renderPDFSelList(){
+  const list=document.getElementById('pdfSelList');
+  let html='';
+  // Me row
+  if(D.me.name||D.me.birthday){
+    const checked=pdfSelected.has('__me__');
+    const avaH=D.me.photo?`<img src="${D.me.photo}" alt="">`:`<span style="color:var(--accent)">${D.me.name?D.me.name.charAt(0):'·'}</span>`;
+    html+=`<div class="pdf-sel-item ${checked?'checked':''}" onclick="togglePDFSel('__me__')">
+      <div class="pdf-sel-ava" style="background:var(--accent-lt)">${avaH}</div>
+      <div class="pdf-sel-info">
+        <div class="pdf-sel-name">${D.me.name||'我的档案'}</div>
+        <div class="pdf-sel-sub">我的档案${D.me.birthday?' · '+fmtDate(D.me.birthday):''}</div>
+      </div>
+      <div class="pdf-sel-check">${checked?'✓':''}</div>
+    </div>`;
+  }
+  // People rows
+  D.people.forEach(p=>{
+    const checked=pdfSelected.has(p.id);
+    const cf=p.customFamily||false;
+    const avaH=p.photo?`<img src="${p.photo}" alt="">`:`<span style="color:${defaultAvaColor(p.relation,cf)}">${p.name?p.name.charAt(0):'?'}</span>`;
+    let dmStr='';
+    if(p.birthday){ try{ const pp=calcPillars(p.birthday); dmStr=' · '+STEMS[pp.day.stem]+EL_NAME[ST_ELEM[pp.day.stem]]; }catch(e){} }
+    html+=`<div class="pdf-sel-item ${checked?'checked':''}" onclick="togglePDFSel('${p.id}')">
+      <div class="pdf-sel-ava" style="background:${defaultAvaBg(p.relation,cf)}">${avaH}</div>
+      <div class="pdf-sel-info">
+        <div class="pdf-sel-name">${p.name||'未命名'}</div>
+        <div class="pdf-sel-sub">${p.relation}${dmStr}</div>
+      </div>
+      <div class="pdf-sel-check">${checked?'✓':''}</div>
+    </div>`;
+  });
+  list.innerHTML=html;
+}
+
+function togglePDFSel(id){
+  if(pdfSelected.has(id)) pdfSelected.delete(id);
+  else pdfSelected.add(id);
+  renderPDFSelList();
+}
+
+function pdfSelAll(val){
+  if(val){
+    if(D.me.name||D.me.birthday) pdfSelected.add('__me__');
+    D.people.forEach(p=>pdfSelected.add(p.id));
+  } else { pdfSelected.clear(); }
+  renderPDFSelList();
+}
+
+function exportSelectedPDF(){
+  if(!pdfSelected.size){ toast('请至少选择一人'); return; }
+  document.getElementById('mPdfSel').classList.remove('open');
+  // Build the selected list
+  const exportMe=pdfSelected.has('__me__');
+  const exportPeople=D.people.filter(p=>pdfSelected.has(p.id));
+  exportAsPDF(exportMe, exportPeople);
+}
+
+// ════════════ PDF EXPORT ════════════
+function exportAsPDF(includeSelf=true, people=null){
+  const exportPeople=people??D.people;
+  if(!exportPeople.length && !includeSelf){ toast('没有选择任何档案'); return; }
+  if((people===null) && !exportPeople.length && !D.me.name && !D.me.birthday){ toast('还没有任何档案'); return; }
+
+  function pPillar(bday){
+    if(!bday) return null;
+    try{ return calcPillars(bday); }catch(e){ return null; }
+  }
+
+  function personHTML(p, isSelf=false){
+    const cf=p.customFamily||false;
+    const pp=pPillar(p.birthday);
+    const dmIdx=pp?pp.day.stem:null;
+    const dm=dmIdx!==null?DM_DATA[dmIdx]:null;
+    const dmName=dm?`${STEMS[dmIdx]}${EL_NAME[ST_ELEM[dmIdx]]}`:'';
+
+    // Photo / initial
+    const photoStyle=p.photo?`background:transparent`:`background:${defaultAvaBg(p.relation,cf)}`;
+    const photoInner=p.photo
+      ?`<img src="${p.photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover">`
+      :`<span style="font-size:28px;font-weight:800;color:${defaultAvaColor(p.relation,cf)}">${p.name?p.name.charAt(0):'?'}</span>`;
+
+    // Bazi analysis block
+    let baziBlock='';
+    if(dm && pp){
+      const dbMain=BR_MAIN[pp.day.branch];
+      const dbTg=tenGod(dmIdx,dbMain);
+      const msTg=tenGod(dmIdx,pp.month.stem);
+      const ysTg=tenGod(dmIdx,pp.year.stem);
+      const genNote=(p.gender&&TG_INNER_GEN[dbTg])
+        ?(p.gender==='女'?TG_INNER_GEN[dbTg][0]:TG_INNER_GEN[dbTg][1]):'';
+      baziBlock=`
+        <div class="pdf-section">
+          <div class="pdf-section-title">日主分析</div>
+          <div class="pdf-dm-name">${dmName} <span class="pdf-dm-hl">${dm.headline}</span></div>
+          ${dm.core.map(c=>`<div class="pdf-trait"><b>· ${c.t}</b><span>${c.d}</span></div>`).join('')}
+        </div>
+        <div class="pdf-section">
+          <div class="pdf-section-title">生活体感</div>
+          ${dm.vibes.map(v=>`<div class="pdf-vibe"><b>${v.t}</b><span> · ${v.d}</span></div>`).join('')}
+        </div>
+        <div class="pdf-section">
+          <div class="pdf-section-title">内心世界 · 日支${BRANCHES[pp.day.branch]}（${STEMS[dbMain]}/${dbTg}）</div>
+          <div class="pdf-tg">${TG_INNER[dbTg]||''}${genNote?`<br><span class="pdf-gen">${p.gender==='女'?'💗':'💙'} 感情倾向：${genNote}</span>`:''}</div>
+        </div>
+        <div class="pdf-row2">
+          <div class="pdf-tg-box">
+            <div class="pdf-tg-label">才华气场 · 月干${STEMS[pp.month.stem]}（${msTg}）</div>
+            <div class="pdf-tg">${TG_TALENT[msTg]||''}</div>
+          </div>
+          <div class="pdf-tg-box">
+            <div class="pdf-tg-label">人生底色 · 年干${STEMS[pp.year.stem]}（${ysTg}）</div>
+            <div class="pdf-tg">${TG_BG[ysTg]||''}</div>
+          </div>
+        </div>
+        <div class="pdf-tips">${dm.tips}</div>`;
+    }
+
+    // Compat with me (skip for self-page)
+    let compatBlock='';
+    if(!isSelf && D.me.birthday && pp){
+      const meP=pPillar(D.me.birthday);
+      if(meP){
+        const comp=CT[ck(meP.day.stem,pp.day.stem)];
+        if(comp){
+          const ctx=getRelCtx(p.relation);
+          const meDm=`${STEMS[meP.day.stem]}${EL_NAME[ST_ELEM[meP.day.stem]]}`;
+          compatBlock=`
+            <div class="pdf-section">
+              <div class="pdf-section-title">${ctx.h} · ${meDm} &amp; ${dmName}</div>
+              <div class="pdf-compat-item"><b>${ctx.ml}：</b>${comp.mis}</div>
+              <div class="pdf-compat-item"><b>${ctx.tl}：</b>${comp.tips}</div>
+            </div>`;
+        }
+      }
+    }
+
+    // Fragments
+    const frags=p.fragments||[];
+    let fragBlock='';
+    if(frags.length){
+      fragBlock=`<div class="pdf-section"><div class="pdf-section-title">关系碎片（${frags.length}条）</div>`
+        +frags.map(f=>{
+          const d=`<span class="pdf-frag-date">${f.date}</span>`;
+          if(f.type==='text') return `<div class="pdf-frag">${d}<div class="pdf-frag-body">${f.content.replace(/\n/g,'<br>')}</div></div>`;
+          if(f.type==='feeling') return `<div class="pdf-frag">${d}<div class="pdf-frag-body">${f.emoji||''} ${f.content||''}</div></div>`;
+          if(f.type==='image') return `<div class="pdf-frag">${d}<img src="${f.content}" style="max-width:100%;border-radius:8px;margin-top:6px"></div>`;
+          return '';
+        }).join('')+'</div>';
+    }
+
+    const relationLabel=isSelf?'我的档案':p.relation;
+    return `
+      <div class="pdf-page">
+        ${isSelf?'<div style="font-size:10px;font-weight:700;letter-spacing:2px;color:#C4A07A;text-transform:uppercase;margin-bottom:14px">我的档案</div>':''}
+        <div class="pdf-header">
+          <div style="width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;${photoStyle}">${photoInner}</div>
+          <div class="pdf-header-info">
+            <div class="pdf-name">${p.name||'未命名'}</div>
+            <div class="pdf-meta">
+              ${p.birthday?`<span>${fmtDate(p.birthday)}</span>`:''}
+              ${p.gender?`<span>${p.gender}</span>`:''}
+              <span>${relationLabel}</span>
+              ${dmName?`<span class="pdf-dm-badge">${dmName}</span>`:''}
+            </div>
+          </div>
+        </div>
+        ${baziBlock}${compatBlock}${fragBlock}
+      </div>`;
+  }
+
+  const meInitial=D.me.name?D.me.name.charAt(0):'·';
+  const mePhotoH=D.me.photo?`<img src="${D.me.photo}" style="width:60px;height:60px;border-radius:50%;object-fit:cover">`:`<span style="font-size:24px;font-weight:800;color:#7A9E85">${meInitial}</span>`;
+
+  // Generate self page
+  const selfPage=(includeSelf && (D.me.name||D.me.birthday))
+    ? personHTML({...D.me, relation:'我', customFamily:false, fragments:[]}, true)
+    : '';
+
+  const html=`<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+<title>Growth Log 档案</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;color:#252525;background:#fff;font-size:13px;line-height:1.7}
+.pdf-cover{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;page-break-after:always;background:#F8F5F0}
+.pdf-cover-logo{font-size:28px;font-weight:700;letter-spacing:3px;margin-bottom:8px}
+.pdf-cover-sub{font-size:14px;color:#999;margin-bottom:28px}
+.pdf-cover-me{display:flex;align-items:center;gap:12px;background:white;padding:14px 20px;border-radius:16px;border:1px solid #E6E2DB}
+.pdf-cover-mename{font-size:16px;font-weight:700}
+.pdf-cover-count{font-size:13px;color:#999;margin-top:20px}
+.pdf-page{padding:36px 40px;page-break-after:always;max-width:700px;margin:0 auto}
+.pdf-header{display:flex;align-items:center;gap:18px;margin-bottom:22px;padding-bottom:18px;border-bottom:2px solid #F2E9DC}
+.pdf-header-info{flex:1}
+.pdf-name{font-size:22px;font-weight:800;margin-bottom:5px}
+.pdf-meta{display:flex;flex-wrap:wrap;gap:6px;font-size:11.5px;color:#777}
+.pdf-meta span{background:#F8F5F0;padding:2px 8px;border-radius:8px}
+.pdf-dm-badge{background:#FBF3E3!important;color:#C4973F!important;font-weight:700}
+.pdf-section{margin-bottom:16px}
+.pdf-section-title{font-size:10px;font-weight:700;letter-spacing:1.5px;color:#C4A07A;text-transform:uppercase;margin-bottom:8px}
+.pdf-dm-name{font-size:17px;font-weight:800;color:#C4973F;margin-bottom:8px}
+.pdf-dm-hl{font-size:13px;font-weight:400;color:#666;margin-left:6px}
+.pdf-trait{margin-bottom:7px;padding:8px 12px;background:#FBF3E3;border-radius:8px}
+.pdf-trait b{display:block;color:#252525;margin-bottom:2px}
+.pdf-trait span{color:#666;font-size:12.5px}
+.pdf-vibe{margin-bottom:5px;font-size:12.5px;color:#555;padding:5px 10px;background:#F8F5F0;border-radius:6px}
+.pdf-vibe b{color:#252525}
+.pdf-tg{font-size:12.5px;color:#555;line-height:1.75;padding:9px 12px;background:#F8F5F0;border-radius:8px}
+.pdf-gen{font-size:11.5px;color:#888;display:block;margin-top:6px;padding-top:6px;border-top:1px solid #E6E2DB}
+.pdf-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.pdf-tg-box{background:#F8F5F0;border-radius:8px;padding:9px 12px}
+.pdf-tg-label{font-size:10px;font-weight:700;letter-spacing:1px;color:#C4A07A;margin-bottom:5px}
+.pdf-tips{font-size:12.5px;color:#7A9E85;padding:10px 14px;background:#EAF2EC;border-radius:8px;border-left:3px solid #7A9E85}
+.pdf-compat-item{margin-bottom:6px;font-size:12.5px;color:#555;padding:7px 11px;background:#F8F5F0;border-radius:7px}
+.pdf-compat-item b{color:#252525}
+.pdf-frag{margin-bottom:8px;padding:9px 12px;background:#F8F5F0;border-radius:8px}
+.pdf-frag-date{font-size:10px;color:#aaa;display:block;margin-bottom:3px}
+.pdf-frag-body{font-size:12.5px;color:#555;line-height:1.7}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none}}
+</style></head><body>
+<div class="pdf-cover">
+  <div class="pdf-cover-logo">Growth Log</div>
+  <div class="pdf-cover-sub">个人成长与关系档案</div>
+  ${D.me.name?`<div class="pdf-cover-me">${mePhotoH}<div><div class="pdf-cover-mename">${D.me.name}</div>${D.me.birthday?`<div style="font-size:12px;color:#999;margin-top:2px">${fmtDate(D.me.birthday)}</div>`:''}</div></div>`:''}
+  <div class="pdf-cover-count">${(includeSelf&&(D.me.name||D.me.birthday)?1:0)+exportPeople.length} 份档案 · 导出于 ${new Date().toLocaleDateString('zh-CN')}</div>
+</div>
+${selfPage}
+${exportPeople.map(p=>personHTML(p)).join('')}
+</div><!-- /appRoot -->
+</body></html>`;
+
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const frame=document.getElementById('pdfFrame');
+  frame.src=url;
+  setTimeout(()=>URL.revokeObjectURL(url),15000);
+  document.getElementById('pdfView').classList.add('open');
+}
+
+// ════════════ SAVE FILE WITH DATA ════════════
+function saveFileWithData(){
+  const json=JSON.stringify(D);
+  // Get current HTML and inject data into the EMBEDDED_DATA slot
+  let html=document.documentElement.outerHTML;
+  html=html.replace(/const EMBEDDED_DATA=.*?;\/\/!GLDATA/, `const EMBEDDED_DATA=${json};//!GLDATA`);
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='Growth Log.html'; a.click();
+  URL.revokeObjectURL(url);
+  toast('文件已保存，数据已打包 ✦');
+}
+
+
+// ════════════ DATE PICKER ════════════
+const DP_H=44;
+let _dpTarget=null;
+
+function getBdayVal(id){ return document.getElementById(id).value||""; }
+function setDateInput(id,val){
+  document.getElementById(id).value=val;
+  const d=document.getElementById(id+'Disp');
+  if(!d) return;
+  if(val){
+    const [y,m,day]=val.split('-');
+    d.textContent=`${+y}年${+m}月${+day}日`;
+    d.classList.add('has-val');
+  } else {
+    d.textContent='选择日期';
+    d.classList.remove('has-val');
+  }
+}
+
+function openDatePicker(target){
+  _dpTarget=target;
+  const val=document.getElementById(target).value;
+  const selY=val?+val.split('-')[0]:2000;
+  const selM=val?+val.split('-')[1]:1;
+  const selD=val?+val.split('-')[2]:1;
+  _buildYears(); _buildMonths(); _buildDays(selY,selM);
+  document.getElementById('mDatePicker').classList.add('open');
+  setTimeout(()=>{
+    _dpScrollTo('dpYear',selY-1920);
+    _dpScrollTo('dpMonth',selM-1);
+    _dpScrollTo('dpDay',selD-1);
+  },60);
+}
+
+function _buildYears(){
+  document.getElementById('dpYear').innerHTML=
+    Array.from({length:96},(_,i)=>`<div class="dp-item">${1920+i}年</div>`).join('');
+}
+function _buildMonths(){
+  document.getElementById('dpMonth').innerHTML=
+    Array.from({length:12},(_,i)=>`<div class="dp-item">${i+1}月</div>`).join('');
+}
+function _buildDays(y,m){
+  const days=new Date(y,m,0).getDate();
+  const cur=_dpGetIdx('dpDay');
+  document.getElementById('dpDay').innerHTML=
+    Array.from({length:days},(_,i)=>`<div class="dp-item">${i+1}日</div>`).join('');
+  setTimeout(()=>_dpScrollTo('dpDay',Math.min(cur,days-1)),10);
+}
+function _dpScrollTo(id,idx){
+  document.getElementById(id).scrollTop=Math.max(0,idx)*DP_H;
+}
+function _dpGetIdx(id){
+  return Math.round(document.getElementById(id).scrollTop/DP_H);
+}
+function confirmDatePicker(){
+  const y=1920+_dpGetIdx('dpYear');
+  const m=1+_dpGetIdx('dpMonth');
+  const d=Math.min(1+_dpGetIdx('dpDay'),new Date(y,m,0).getDate());
+  const s=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  setDateInput(_dpTarget,s);
+  if(_dpTarget==='meBday') renderMeBz();
+  document.getElementById('mDatePicker').classList.remove('open');
+}
+function _dpInitListeners(){
+  ['dpYear','dpMonth'].forEach(id=>{
+    document.getElementById(id).addEventListener('scroll',function(){
+      clearTimeout(this._t);
+      this._t=setTimeout(()=>_buildDays(1920+_dpGetIdx('dpYear'),1+_dpGetIdx('dpMonth')),250);
+    },{passive:true});
+  });
+}
+
+// ════════════ GENERAL CONFIRM ════════════
+let _confirmCb=null;
+function showConfirm(msg,cb){
+  _confirmCb=cb;
+  document.getElementById('confirmMsg').textContent=msg;
+  document.getElementById('confirmGeneral').classList.add('open');
+}
+function cancelConfirm(){
+  document.getElementById('confirmGeneral').classList.remove('open');
+  _confirmCb=null;
+}
+function doConfirm(){
+  document.getElementById('confirmGeneral').classList.remove('open');
+  if(_confirmCb){const fn=_confirmCb;_confirmCb=null;fn();}
+}
+
+// ════════════ PDF VIEW ════════════
+function closePdfView(){
+  document.getElementById('pdfView').classList.remove('open');
+  document.getElementById('pdfFrame').src='about:blank';
+}
+
+// ════════════ SERVICE WORKER ════════════
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+  navigator.serviceWorker.addEventListener('message', e => {
+    if(e.data && e.data.type === 'SW_UPDATED'){
+      document.getElementById('updateBanner').classList.add('show');
+    }
+  });
+}
+
+// ════════════ INIT ════════════
+_dpInitListeners();
+
+_SB.auth.onAuthStateChange(async (event, session) => {
+  if(event==='SIGNED_IN'&&session){
+    _user=session.user; _userEmail=_user.email||'';
+    await loadAllData();
+    showApp();
+    const t=localStorage.getItem('gl_tab');
+    if(t&&['profile','circle','settings'].includes(t)) switchTab(t);
+    else renderProfileTab();
+  } else if(event==='SIGNED_OUT'){
+    _user=null; _userEmail='';
+    D={me:{name:'',birthday:'',photo:null,gender:'女'},people:[]};
+    showAuthScreen();
+  }
+});
+
+(async()=>{
+  // 先显示 loading，静默检查 session，已登录直接进 app
+  document.getElementById('loadingOverlay').style.display='flex';
+  const session = await _sbGetValid();
+  if(session){
+    _user=session.user; _userEmail=_user.email||'';
+    await loadAllData();
+    showApp();
+    const t=localStorage.getItem('gl_tab');
+    if(t&&['profile','circle','settings'].includes(t)) switchTab(t);
+    else renderProfileTab();
+  } else {
+    document.getElementById('loadingOverlay').style.display='none';
+    showAuthScreen();
+  }
+})();
+</script>
+</div><!-- /appRoot -->
+</body>
+</html>
