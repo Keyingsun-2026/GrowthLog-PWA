@@ -22,6 +22,9 @@ serve(async (req) => {
 
     const { impression, personInfo } = await req.json()
 
+    const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
+    console.log('API key present:', !!apiKey, 'length:', apiKey?.length)
+
     const systemPrompt = `你是 Growth Log 的 AI 助手，帮助用户理解身边的人。
 用户会分享对某人的直觉感受或观察，你需要结合这个人的性格特质，给出温暖、准确、有洞察力的解读。
 回复要简洁（100-150字），语气自然亲切，像一个很懂人的朋友在说话，直接说结论，不要提"八字"或"命理"等术语。`
@@ -39,7 +42,7 @@ serve(async (req) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get('DEEPSEEK_API_KEY')}`,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: 'deepseek-chat',
@@ -52,13 +55,24 @@ serve(async (req) => {
       }),
     })
 
+    console.log('DeepSeek status:', response.status)
     const data = await response.json()
+    console.log('DeepSeek response:', JSON.stringify(data).slice(0, 500))
+
+    if (!response.ok) {
+      return new Response(JSON.stringify({ error: data.error?.message || 'DeepSeek API error', status: response.status }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
     const content = data.choices?.[0]?.message?.content || '暂时无法生成解读，请稍后重试。'
 
     return new Response(JSON.stringify({ content }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
+    console.log('Caught error:', error.message)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

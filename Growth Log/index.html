@@ -958,7 +958,7 @@ async function loadAllData(){
     if(p) D.me={name:p.name||'',birthday:p.birthday||'',photo:p.photo_url||null,gender:p.gender||'女'};
 
     const{data:ppl}=await _SB.from('people')
-      .select('*, fragments(*)')
+      .select('id,name,birthday,relation,gender,custom_family,photo_url')
       .eq('user_id',_user.id)
       .order('created_at',{ascending:true});
     if(ppl){
@@ -966,12 +966,10 @@ async function loadAllData(){
         id:p.id, name:p.name||'', birthday:p.birthday||'',
         relation:p.relation||'', gender:p.gender||'',
         customFamily:p.custom_family||false, photo:p.photo_url||null,
-        fragments:(p.fragments||[])
-          .sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))
-          .map(f=>({id:f.id,type:f.type,content:f.content||'',emoji:f.emoji||'',date:f.frag_date||''}))
+        fragments:[], _fragmentsLoaded:false
       }));
     }
-  }catch(e){console.error(e);}
+  }catch(e){console.error(e); toast('加载失败，请检查网络后重试');}
   document.getElementById('loadingOverlay').style.display='none';
 }
 
@@ -1846,7 +1844,7 @@ async function delImpression(fid){
 }
 
 // ════════════ PERSON DETAIL ════════════
-function openPerson(id){
+async function openPerson(id){
   curPerson=D.people.find(p=>p.id===id);
   if(!curPerson) return;
   fragOpen=false; personTab='analysis';
@@ -1856,6 +1854,15 @@ function openPerson(id){
   });
   renderPerson();
   openView('vPerson');
+  if(!curPerson._fragmentsLoaded){
+    const{data:frags}=await _SB.from('fragments')
+      .select('*')
+      .eq('person_id',curPerson.id)
+      .order('created_at',{ascending:true});
+    curPerson.fragments=(frags||[]).map(f=>({id:f.id,type:f.type,content:f.content||'',emoji:f.emoji||'',date:f.frag_date||''}));
+    curPerson._fragmentsLoaded=true;
+    if(curPerson.id===id) renderPerson();
+  }
 }
 function renderPerson(){
   const p=curPerson, me=D.me, cf=p.customFamily||false;
@@ -2086,7 +2093,7 @@ async function savePerson(){
     if(error||!data){toast('添加失败，请重试');return;}
     D.people.push({id:data.id,name,birthday:bday,relation:selRel,
       gender:selNewGender,customFamily:selCustomFamily,
-      photo:tmpPhoto.new||null,fragments:[]});
+      photo:tmpPhoto.new||null,fragments:[],_fragmentsLoaded:true});
     renderCircleTab();
     document.getElementById('mPerson').classList.remove('open');
     toast('已添加 ✨');
