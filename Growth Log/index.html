@@ -375,6 +375,11 @@ input,textarea{max-width:100%;box-sizing:border-box}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-text{font-size:13px;color:var(--muted)}
 
+/* ── Mini progress bar ── */
+#progressBar{position:fixed;bottom:0;left:0;height:3px;width:0%;background:var(--accent);z-index:9999;transition:width .3s ease,opacity .4s ease;opacity:0;pointer-events:none;border-radius:0 2px 0 0}
+#progressBar.active{opacity:1}
+@keyframes progressPulse{0%{opacity:.7}50%{opacity:1}100%{opacity:.7}}
+
 /* ── Person Tabs ── */
 .person-tab-bar{display:flex;background:var(--bg);border-radius:20px;padding:2px;gap:2px;flex:1;margin:0 8px}
 .person-tab{flex:1;text-align:center;padding:5px 6px;border-radius:18px;font-size:11.5px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .2s;white-space:nowrap;touch-action:manipulation;user-select:none}
@@ -437,6 +442,7 @@ input,textarea{max-width:100%;box-sizing:border-box}
   <div class="loading-spinner"></div>
   <div class="loading-text">加载中...</div>
 </div>
+<div id="progressBar"></div>
 
 <!-- ═══ APP ROOT ═══ -->
 <div id="appRoot">
@@ -948,6 +954,25 @@ async function doSignOut(){
   await _SB.auth.signOut();
   D={me:{name:'',birthday:'',photo:null,gender:'女'},people:[]};
   curTab='profile';
+}
+
+// ════════════ PROGRESS BAR ════════════
+let _pbTimer=null;
+function pbStart(){
+  const bar=document.getElementById('progressBar');
+  bar.style.transition='none'; bar.style.width='0%';
+  bar.classList.add('active');
+  // animate to ~85% over ~8s, simulating progress
+  requestAnimationFrame(()=>{
+    bar.style.transition='width 8s cubic-bezier(.1,.6,.3,1)';
+    bar.style.width='85%';
+  });
+}
+function pbDone(){
+  const bar=document.getElementById('progressBar');
+  bar.style.transition='width .2s ease';
+  bar.style.width='100%';
+  setTimeout(()=>{bar.classList.remove('active');bar.style.width='0%';},400);
 }
 
 // ════════════ DATA LOAD ════════════
@@ -1855,12 +1880,14 @@ async function openPerson(id){
   renderPerson();
   openView('vPerson');
   if(!curPerson._fragmentsLoaded){
+    pbStart();
     const{data:frags}=await _SB.from('fragments')
       .select('*')
       .eq('person_id',curPerson.id)
       .order('created_at',{ascending:true});
     curPerson.fragments=(frags||[]).map(f=>({id:f.id,type:f.type,content:f.content||'',emoji:f.emoji||'',date:f.frag_date||''}));
     curPerson._fragmentsLoaded=true;
+    pbDone();
     if(curPerson.id===id) renderPerson();
   }
 }
@@ -2819,15 +2846,18 @@ _SB.auth.onAuthStateChange(async (event, session) => {
 (async()=>{
   // 先显示 loading，静默检查 session，已登录直接进 app
   document.getElementById('loadingOverlay').style.display='flex';
+  pbStart();
   const session = await _sbGetValid();
   if(session){
     _user=session.user; _userEmail=_user.email||'';
     await loadAllData();
+    pbDone();
     showApp();
     const t=localStorage.getItem('gl_tab');
     if(t&&['profile','circle','settings'].includes(t)) switchTab(t);
     else renderProfileTab();
   } else {
+    pbDone();
     document.getElementById('loadingOverlay').style.display='none';
     showAuthScreen();
   }
