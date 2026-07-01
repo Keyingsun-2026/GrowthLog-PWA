@@ -1802,10 +1802,38 @@ async function saveImpression(){
   }).select().single();
   if(error||!data){toast('保存失败');return;}
   if(!curPerson.fragments) curPerson.fragments=[];
-  curPerson.fragments.push({id:data.id,type:'impression',content:txt,emoji:'',date:dateStr});
+  curPerson.fragments.push({id:data.id,type:'impression',content:txt,emoji:'__loading__',date:dateStr});
   document.getElementById('impressionTxt').value='';
   renderPerson();
-  toast('感受已记录 ✦');
+  toast('感受已记录，AI 解读中... ✦');
+
+  // 调用 DeepSeek Edge Function
+  try{
+    const dmIdx=curPerson.birthday?calcPillars(curPerson.birthday).day.stem:null;
+    const personInfo={
+      name:curPerson.name,
+      relation:curPerson.relation,
+      gender:curPerson.gender||'',
+      dmName:dmIdx!==null?STEMS[dmIdx]+EL_NAME[ST_ELEM[dmIdx]]:'',
+      dmTagline:dmIdx!==null?DM_DATA[dmIdx].tagline:'',
+      dmCore:dmIdx!==null?DM_DATA[dmIdx].core.map(c=>c.t).join('、'):''
+    };
+    const resp=await fetch(_SB_URL+'/functions/v1/deepseek-proxy',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_sbSession?.access_token||''),'apikey':_SB_KEY},
+      body:JSON.stringify({impression:txt,personInfo})
+    });
+    const result=await resp.json();
+    const aiReply=result.content||(dmIdx!==null?analyzeImpression(txt,dmIdx):'你的感受很真实，多相处一段时间会有更清晰的理解。');
+    await _SB.from('fragments').update({emoji:aiReply}).eq('id',data.id);
+    const frag=curPerson.fragments.find(f=>f.id===data.id);
+    if(frag) frag.emoji=aiReply;
+  }catch(e){
+    const dmIdx=curPerson.birthday?calcPillars(curPerson.birthday).day.stem:null;
+    const frag=curPerson.fragments.find(f=>f.id===data.id);
+    if(frag) frag.emoji=dmIdx!==null?analyzeImpression(txt,dmIdx):'';
+  }
+  renderPerson();
 }
 
 async function delImpression(fid){
@@ -1822,6 +1850,10 @@ function openPerson(id){
   curPerson=D.people.find(p=>p.id===id);
   if(!curPerson) return;
   fragOpen=false; personTab='analysis';
+  ['analysis','feeling','frags'].forEach(t=>{
+    const el=document.getElementById('ptab-'+t);
+    if(el) el.classList.toggle('active',t==='analysis');
+  });
   renderPerson();
   openView('vPerson');
 }
@@ -1869,11 +1901,15 @@ function renderPerson(){
           </div>
           <div class="impr-response-wrap">
             <div class="impr-response-label">✦ Growth Log 解读</div>
-            <div class="impr-response-text">${analyzeImpression(im.content,dmIdx)}</div>
+            <div class="impr-response-text">${
+              im.emoji==='__loading__'
+                ?'<span style="color:var(--muted)">AI 解读生成中...</span>'
+                :(im.emoji||analyzeImpression(im.content,dmIdx))
+            }</div>
           </div>
           <div class="impr-date">${im.date}</div>
         </div>`).join('')
-      :`<div class="impr-empty">写下你对TA的直觉感受<br>Growth Log 会从八字角度给你解读 🌿</div>`;
+      :`<div class="impr-empty">写下你对TA的直觉感受<br>Growth Log 会用 AI 给你解读 🌿</div>`;
 
     tabContent=`
       <div class="impr-input-wrap">
