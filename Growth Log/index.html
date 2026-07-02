@@ -375,10 +375,7 @@ input,textarea{max-width:100%;box-sizing:border-box}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-text{font-size:13px;color:var(--muted)}
 
-/* ── Mini progress bar ── */
-#progressBar{position:fixed;bottom:0;left:0;height:3px;width:0%;background:var(--accent);z-index:9999;transition:width .3s ease,opacity .4s ease;opacity:0;pointer-events:none;border-radius:0 2px 0 0}
-#progressBar.active{opacity:1}
-@keyframes progressPulse{0%{opacity:.7}50%{opacity:1}100%{opacity:.7}}
+#loadingPct{font-size:26px;font-weight:700;color:var(--accent);letter-spacing:1px;margin-top:2px}
 
 /* ── Person Tabs ── */
 .person-tab-bar{display:flex;background:var(--bg);border-radius:20px;padding:2px;gap:2px;flex:1;margin:0 8px}
@@ -441,8 +438,8 @@ input,textarea{max-width:100%;box-sizing:border-box}
 <div class="loading-overlay" id="loadingOverlay">
   <div class="loading-spinner"></div>
   <div class="loading-text">加载中...</div>
+  <div id="loadingPct">0%</div>
 </div>
-<div id="progressBar"></div>
 
 <!-- ═══ APP ROOT ═══ -->
 <div id="appRoot">
@@ -956,31 +953,20 @@ async function doSignOut(){
   curTab='profile';
 }
 
-// ════════════ PROGRESS BAR ════════════
-let _pbTimer=null;
-function pbStart(){
-  const bar=document.getElementById('progressBar');
-  bar.style.transition='none'; bar.style.width='0%';
-  bar.classList.add('active');
-  // animate to ~85% over ~8s, simulating progress
-  requestAnimationFrame(()=>{
-    bar.style.transition='width 8s cubic-bezier(.1,.6,.3,1)';
-    bar.style.width='85%';
-  });
-}
-function pbDone(){
-  const bar=document.getElementById('progressBar');
-  bar.style.transition='width .2s ease';
-  bar.style.width='100%';
-  setTimeout(()=>{bar.classList.remove('active');bar.style.width='0%';},400);
+// ════════════ LOADING PERCENTAGE ════════════
+function setPct(n){
+  const el=document.getElementById('loadingPct');
+  if(el) el.textContent=n+'%';
 }
 
 // ════════════ DATA LOAD ════════════
 async function loadAllData(){
   document.getElementById('loadingOverlay').style.display='flex';
+  setPct(15);
   try{
     const{data:p}=await _SB.from('profiles').select('*').eq('id',_user.id).maybeSingle();
     if(p) D.me={name:p.name||'',birthday:p.birthday||'',photo:p.photo_url||null,gender:p.gender||'女'};
+    setPct(55);
 
     const{data:ppl}=await _SB.from('people')
       .select('id,name,birthday,relation,gender,custom_family,photo_url')
@@ -994,6 +980,7 @@ async function loadAllData(){
         fragments:[], _fragmentsLoaded:false
       }));
     }
+    setPct(100);
   }catch(e){console.error(e); toast('加载失败，请检查网络后重试');}
   document.getElementById('loadingOverlay').style.display='none';
 }
@@ -1851,12 +1838,16 @@ async function saveImpression(){
     await _SB.from('fragments').update({emoji:aiReply}).eq('id',data.id);
     const frag=curPerson.fragments.find(f=>f.id===data.id);
     if(frag) frag.emoji=aiReply;
+    const el=document.getElementById('impr-resp-'+data.id);
+    if(el) el.innerHTML=aiReply;
   }catch(e){
     const dmIdx=curPerson.birthday?calcPillars(curPerson.birthday).day.stem:null;
     const frag=curPerson.fragments.find(f=>f.id===data.id);
-    if(frag) frag.emoji=dmIdx!==null?analyzeImpression(txt,dmIdx):'';
+    const fallback=dmIdx!==null?analyzeImpression(txt,dmIdx):'';
+    if(frag) frag.emoji=fallback;
+    const el=document.getElementById('impr-resp-'+data.id);
+    if(el) el.innerHTML=fallback;
   }
-  renderPerson();
 }
 
 async function delImpression(fid){
@@ -1880,14 +1871,12 @@ async function openPerson(id){
   renderPerson();
   openView('vPerson');
   if(!curPerson._fragmentsLoaded){
-    pbStart();
     const{data:frags}=await _SB.from('fragments')
       .select('*')
       .eq('person_id',curPerson.id)
       .order('created_at',{ascending:true});
     curPerson.fragments=(frags||[]).map(f=>({id:f.id,type:f.type,content:f.content||'',emoji:f.emoji||'',date:f.frag_date||''}));
     curPerson._fragmentsLoaded=true;
-    pbDone();
     if(curPerson.id===id) renderPerson();
   }
 }
@@ -1935,7 +1924,7 @@ function renderPerson(){
           </div>
           <div class="impr-response-wrap">
             <div class="impr-response-label">✦ Growth Log 解读</div>
-            <div class="impr-response-text">${
+            <div class="impr-response-text" id="impr-resp-${im.id}">${
               im.emoji==='__loading__'
                 ?'<span style="color:var(--muted)">AI 解读生成中...</span>'
                 :(im.emoji||analyzeImpression(im.content,dmIdx))
@@ -2846,18 +2835,16 @@ _SB.auth.onAuthStateChange(async (event, session) => {
 (async()=>{
   // 先显示 loading，静默检查 session，已登录直接进 app
   document.getElementById('loadingOverlay').style.display='flex';
-  pbStart();
+  setPct(5);
   const session = await _sbGetValid();
   if(session){
     _user=session.user; _userEmail=_user.email||'';
     await loadAllData();
-    pbDone();
     showApp();
     const t=localStorage.getItem('gl_tab');
     if(t&&['profile','circle','settings'].includes(t)) switchTab(t);
     else renderProfileTab();
   } else {
-    pbDone();
     document.getElementById('loadingOverlay').style.display='none';
     showAuthScreen();
   }
