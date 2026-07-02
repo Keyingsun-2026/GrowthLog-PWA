@@ -410,7 +410,7 @@ input,textarea{max-width:100%;box-sizing:border-box}
 .chat-del-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;padding:2px 4px;flex-shrink:0;align-self:flex-start;margin-top:2px;opacity:.5;touch-action:manipulation}
 .chat-empty{text-align:center;padding:32px 16px;color:var(--muted);font-size:13px;line-height:1.9}
 /* Input bar stays fixed at bottom, never scrolls */
-.chat-input-bar{flex-shrink:0;display:flex;gap:8px;align-items:flex-end;padding:10px 0 max(10px,env(safe-area-inset-bottom,10px));border-top:1px solid var(--border);margin-top:8px}
+.chat-input-bar{flex-shrink:0;display:flex;gap:8px;align-items:flex-end;padding:10px 0 max(6px,calc(env(safe-area-inset-bottom,0px) * 0.5));border-top:1px solid var(--border);margin-top:8px}
 .chat-input{flex:1;border:1.5px solid var(--border);border-radius:20px;padding:9px 14px;font-size:14px;resize:none;background:var(--card);color:var(--text);font-family:inherit;line-height:1.5;outline:none;min-height:38px;max-height:90px;overflow-y:auto}
 .chat-send{width:36px;height:36px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;color:#fff;font-size:17px;flex-shrink:0;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
 
@@ -982,24 +982,23 @@ function setPct(n){
 // ════════════ DATA LOAD ════════════
 async function loadAllData(){
   document.getElementById('loadingOverlay').style.display='flex';
-  setPct(15);
+  setPct(20);
   try{
-    const{data:p}=await _SB.from('profiles').select('*').eq('id',_user.id).maybeSingle();
+    // 两个请求并行，加载时间减半
+    const [{data:p},{data:ppl}]=await Promise.all([
+      _SB.from('profiles').select('*').eq('id',_user.id).maybeSingle(),
+      _SB.from('people').select('id,name,birthday,relation,gender,custom_family,photo_url').eq('user_id',_user.id).order('created_at',{ascending:true})
+    ]);
+    setPct(85);
     if(p) D.me={name:p.name||'',birthday:p.birthday||'',photo:p.photo_url||null,gender:p.gender||'女',selfFragments:[],_selfFragsLoaded:false};
-    setPct(55);
-
-    const{data:ppl}=await _SB.from('people')
-      .select('id,name,birthday,relation,gender,custom_family,photo_url')
-      .eq('user_id',_user.id)
-      .order('created_at',{ascending:true});
     if(ppl){
       // __self__ 是存自我碎片用的隐藏记录，不显示在外圈
-      const selfRec=ppl.find(p=>p.relation==='__self__');
+      const selfRec=ppl.find(r=>r.relation==='__self__');
       if(selfRec) D.me.selfPersonId=selfRec.id;
-      D.people=ppl.filter(p=>p.relation!=='__self__').map(p=>({
-        id:p.id, name:p.name||'', birthday:p.birthday||'',
-        relation:p.relation||'', gender:p.gender||'',
-        customFamily:p.custom_family||false, photo:p.photo_url||null,
+      D.people=ppl.filter(r=>r.relation!=='__self__').map(r=>({
+        id:r.id, name:r.name||'', birthday:r.birthday||'',
+        relation:r.relation||'', gender:r.gender||'',
+        customFamily:r.custom_family||false, photo:r.photo_url||null,
         fragments:[], _fragmentsLoaded:false
       }));
     }
@@ -1558,6 +1557,15 @@ function setGenderUI(scope, val){
   else selNewGender=val;
 }
 function uid(){ return 'i'+Date.now()+Math.random().toString(36).slice(2); }
+// 保存重试：网络抖动时自动重试一次（跳过 DB 约束错误如 23xxx）
+async function _fragInsert(row){
+  let r=await _SB.from('fragments').insert(row).select().single();
+  if(r.error&&!String(r.error.code||'').startsWith('23')){
+    await new Promise(ok=>setTimeout(ok,900));
+    r=await _SB.from('fragments').insert(row).select().single();
+  }
+  return r;
+}
 function fmtDate(s){ if(!s) return ''; const d=new Date(s); return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`; }
 function nowStr(){ const n=new Date(); return `${n.getFullYear()}.${n.getMonth()+1}.${n.getDate()} ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; }
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2400); }
@@ -1746,10 +1754,10 @@ async function saveMyImpression(){
   const selfId=await getSelfPersonId();
   if(!selfId){toast('保存失败，请重试');return;}
   const dateStr=nowStr();
-  const{data,error}=await _SB.from('fragments').insert({
+  const{data,error}=await _fragInsert({
     person_id:selfId,user_id:_user.id,
     type:'impression',content:txt,frag_date:dateStr
-  }).select().single();
+  });
   if(error||!data){toast('保存失败');return;}
   if(!D.me.selfFragments) D.me.selfFragments=[];
   D.me.selfFragments.push({id:data.id,type:'impression',content:txt,emoji:'__loading__',date:dateStr});
@@ -1996,10 +2004,10 @@ async function saveImpression(){
   const txt=document.getElementById('impressionTxt').value.trim();
   if(!txt){toast('请写下你的感受');return;}
   const dateStr=nowStr();
-  const{data,error}=await _SB.from('fragments').insert({
+  const{data,error}=await _fragInsert({
     person_id:curPerson.id,user_id:_user.id,
     type:'impression',content:txt,frag_date:dateStr
-  }).select().single();
+  });
   if(error||!data){toast('保存失败');return;}
   if(!curPerson.fragments) curPerson.fragments=[];
   curPerson.fragments.push({id:data.id,type:'impression',content:txt,emoji:'__loading__',date:dateStr});
@@ -2363,10 +2371,10 @@ async function saveFrag(){
   const dateStr=nowStr();
   const personId=_selfFragMode?(await getSelfPersonId()):curPerson.id;
   if(!personId){_selfFragMode=false;toast('保存失败，请重试');return;}
-  const{data,error}=await _SB.from('fragments').insert({
+  const{data,error}=await _fragInsert({
     person_id:personId,user_id:_user.id,
     type:fragType,content,emoji,frag_date:dateStr
-  }).select().single();
+  });
   if(error||!data){_selfFragMode=false;toast('保存失败');return;}
   if(_selfFragMode){
     if(!D.me.selfFragments) D.me.selfFragments=[];
