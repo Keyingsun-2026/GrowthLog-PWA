@@ -382,17 +382,22 @@ input,textarea{max-width:100%;box-sizing:border-box}
 .person-tab{flex:1;text-align:center;padding:5px 6px;border-radius:18px;font-size:11.5px;font-weight:600;color:var(--warm2);cursor:pointer;transition:all .2s;white-space:nowrap;touch-action:manipulation;user-select:none}
 .person-tab.active{background:var(--card);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.08)}
 
-/* ── Impression Section ── */
-.impr-input-wrap{background:var(--card);border-radius:var(--r);padding:16px;margin-bottom:14px;border:1.5px solid var(--border)}
-.impr-input-label{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
-.impr-entry{margin-bottom:16px}
-.impr-user-bubble{background:var(--warm);border-radius:10px 10px 3px 10px;padding:11px 14px;font-size:13px;line-height:1.75;color:var(--text);margin-bottom:8px}
-.impr-response-wrap{background:var(--accent-lt);border-radius:3px 10px 10px 10px;padding:11px 14px;border-left:3px solid var(--accent)}
-.impr-response-label{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--accent);margin-bottom:5px}
-.impr-response-text{font-size:13px;color:var(--mid);line-height:1.78}
-.impr-date{font-size:10px;color:var(--muted);margin-top:4px;padding-left:3px}
-.impr-empty{text-align:center;padding:32px 16px;color:var(--muted);font-size:13px;line-height:1.9}
-.del-impr{float:right;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.07);border:none;cursor:pointer;font-size:10px;color:var(--muted);display:flex;align-items:center;justify-content:center;margin-left:8px;flex-shrink:0;touch-action:manipulation}
+/* ── Chat UI ── */
+.chat-wrap{padding-bottom:4px}
+.chat-row{display:flex;align-items:flex-end;gap:8px;margin-bottom:6px;padding:0 2px}
+.chat-row.user-row{flex-direction:row-reverse}
+.chat-ava{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;overflow:hidden;background:var(--warm);color:var(--warm2)}
+.chat-ava.ai-ava{background:var(--accent);color:#fff;font-size:14px}
+.chat-ava img{width:100%;height:100%;object-fit:cover}
+.chat-bubble{max-width:76%;padding:9px 13px;font-size:14px;line-height:1.65;word-break:break-word;position:relative}
+.user-bubble{background:var(--accent);color:#fff;border-radius:16px 16px 4px 16px}
+.ai-bubble{background:var(--card);color:var(--text);border-radius:16px 16px 16px 4px;border:1px solid var(--border)}
+.chat-date-row{text-align:center;font-size:11px;color:var(--muted);margin:2px 0 10px}
+.chat-del-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;padding:2px 4px;flex-shrink:0;align-self:flex-start;margin-top:2px;opacity:.5;touch-action:manipulation}
+.chat-empty{text-align:center;padding:32px 16px;color:var(--muted);font-size:13px;line-height:1.9}
+.chat-input-bar{display:flex;gap:8px;align-items:flex-end;padding:10px 0 4px;border-top:1px solid var(--border);margin-top:10px}
+.chat-input{flex:1;border:1.5px solid var(--border);border-radius:20px;padding:9px 14px;font-size:14px;resize:none;background:var(--card);color:var(--text);font-family:inherit;line-height:1.5;outline:none;min-height:38px;max-height:90px;overflow-y:auto}
+.chat-send{width:36px;height:36px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;color:#fff;font-size:17px;flex-shrink:0;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
 
 /* ── Lightbox ── */
 .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:800;display:none;align-items:center;justify-content:center;touch-action:manipulation}
@@ -1639,31 +1644,32 @@ function renderProfileTab(){
       :`<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px">点击右上角编辑，设置生日后生成日主分析</div>`;
   } else if(profileTab==='feeling'){
     const impressions=(me.selfFragments||[]).filter(f=>f.type==='impression').slice().reverse();
-    const imprList=impressions.length
+    const meAvaH=me.photo?`<img src="${me.photo}">`:(me.name?me.name.charAt(0):'我');
+    const bubbles=impressions.length
       ?impressions.map(im=>`
-        <div class="impr-entry">
-          <div style="display:flex;align-items:flex-start;gap:6px">
-            <div class="impr-user-bubble" style="flex:1">${im.content.replace(/\n/g,'<br>')}</div>
-            <button class="del-impr" onclick="delMyImpression('${im.id}')">✕</button>
-          </div>
-          <div class="impr-response-wrap">
-            <div class="impr-response-label">✦ Growth Log 解读</div>
-            <div class="impr-response-text" id="impr-resp-${im.id}">${
-              im.emoji==='__loading__'
-                ?'<span style="color:var(--muted)">AI 解读生成中...</span>'
-                :(im.emoji||'')
-            }</div>
-          </div>
-          <div class="impr-date">${im.date}</div>
-        </div>`).join('')
-      :`<div class="impr-empty">写下你对自己的感受或观察<br>Growth Log 会用 AI 帮你解读 🌿</div>`;
+        <div class="chat-row user-row">
+          <div class="chat-ava">${meAvaH}</div>
+          <div class="chat-bubble user-bubble">${im.content.replace(/\n/g,'<br>')}</div>
+        </div>
+        <div class="chat-row">
+          <div class="chat-ava ai-ava">🌿</div>
+          <div class="chat-bubble ai-bubble" id="impr-resp-${im.id}">${
+            im.emoji==='__loading__'
+              ?'<span style="color:var(--muted);font-size:13px">解读中...</span>'
+              :(im.emoji||'')
+          }</div>
+          <button class="chat-del-btn" onclick="delMyImpression('${im.id}')">✕</button>
+        </div>
+        <div class="chat-date-row">${im.date}</div>`).join('')
+      :`<div class="chat-empty">写下你对自己的感受或观察<br>Growth Log AI 会帮你解读 🌿</div>`;
     tabContent=`
-      <div class="impr-input-wrap">
-        <div class="impr-input-label">我感觉我...</div>
-        <textarea class="ft" id="selfImprTxt" placeholder="比如：我最近感觉自己很容易焦虑，好像很难放松下来…" style="min-height:80px;margin-bottom:10px"></textarea>
-        <button class="sub-btn" onclick="saveMyImpression()" style="margin-top:0">记录感受</button>
-      </div>
-      ${imprList}`;
+      <div class="chat-wrap">
+        ${bubbles}
+        <div class="chat-input-bar">
+          <textarea class="chat-input" id="selfImprTxt" placeholder="说说你最近的感受..." rows="2"></textarea>
+          <button class="chat-send" onclick="saveMyImpression()">↑</button>
+        </div>
+      </div>`;
   } else if(profileTab==='frags'){
     const frags=(me.selfFragments||[]).filter(f=>f.type!=='impression').slice().reverse();
     let fragsBody=frags.length?frags.map(f=>{
@@ -1730,10 +1736,11 @@ async function saveMyImpression(){
       dmTagline:dmIdx!==null?DM_DATA[dmIdx].tagline:'',
       dmCore:dmIdx!==null?DM_DATA[dmIdx].core.map(c=>c.t).join('、'):''
     };
+    const history=_buildHistory(D.me.selfFragments, data.id);
     const resp=await fetch(_SB_URL+'/functions/v1/deepseek-proxy',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_sbSession?.access_token||''),'apikey':_SB_KEY},
-      body:JSON.stringify({impression:txt,personInfo:selfInfo,isSelf:true})
+      body:JSON.stringify({messages:[...history,{role:'user',content:txt}],personInfo:selfInfo,isSelf:true})
     });
     const result=await resp.json();
     const aiReply=result.content||'你的感受很真实，这种对自己的觉察本身就很有价值。';
@@ -1946,6 +1953,16 @@ function switchPersonTab(tab){
   renderPerson();
 }
 
+function _buildHistory(fragments, excludeId){
+  return (fragments||[])
+    .filter(f=>f.type==='impression'&&f.id!==excludeId)
+    .flatMap(f=>{
+      const msgs=[{role:'user',content:f.content}];
+      if(f.emoji&&f.emoji!=='__loading__') msgs.push({role:'assistant',content:f.emoji});
+      return msgs;
+    });
+}
+
 async function saveImpression(){
   if(!curPerson) return;
   const txt=document.getElementById('impressionTxt').value.trim();
@@ -1960,23 +1977,22 @@ async function saveImpression(){
   curPerson.fragments.push({id:data.id,type:'impression',content:txt,emoji:'__loading__',date:dateStr});
   document.getElementById('impressionTxt').value='';
   renderPerson();
-  toast('感受已记录，AI 解读中... ✦');
+  // 滚到底部
+  setTimeout(()=>{const v=document.getElementById('vPerson');if(v)v.scrollTop=v.scrollHeight;},60);
 
-  // 调用 DeepSeek Edge Function
   try{
     const dmIdx=curPerson.birthday?calcPillars(curPerson.birthday).day.stem:null;
     const personInfo={
-      name:curPerson.name,
-      relation:curPerson.relation,
-      gender:curPerson.gender||'',
+      name:curPerson.name,relation:curPerson.relation,gender:curPerson.gender||'',
       dmName:dmIdx!==null?STEMS[dmIdx]+EL_NAME[ST_ELEM[dmIdx]]:'',
       dmTagline:dmIdx!==null?DM_DATA[dmIdx].tagline:'',
       dmCore:dmIdx!==null?DM_DATA[dmIdx].core.map(c=>c.t).join('、'):''
     };
+    const history=_buildHistory(curPerson.fragments, data.id);
     const resp=await fetch(_SB_URL+'/functions/v1/deepseek-proxy',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_sbSession?.access_token||''),'apikey':_SB_KEY},
-      body:JSON.stringify({impression:txt,personInfo})
+      body:JSON.stringify({messages:[...history,{role:'user',content:txt}],personInfo,isSelf:false})
     });
     const result=await resp.json();
     const aiReply=result.content||(dmIdx!==null?analyzeImpression(txt,dmIdx):'你的感受很真实，多相处一段时间会有更清晰的理解。');
@@ -2060,32 +2076,33 @@ function renderPerson(){
   }
 
   else if(personTab==='feeling'){
-    const imprList=impressions.length
+    const meAvaH=D.me.photo?`<img src="${D.me.photo}">`:(D.me.name?D.me.name.charAt(0):'我');
+    const bubbles=impressions.length
       ?impressions.map(im=>`
-        <div class="impr-entry">
-          <div style="display:flex;align-items:flex-start;gap:6px">
-            <div class="impr-user-bubble" style="flex:1">${im.content.replace(/\n/g,'<br>')}</div>
-            <button class="del-impr" onclick="delImpression('${im.id}')">✕</button>
-          </div>
-          <div class="impr-response-wrap">
-            <div class="impr-response-label">✦ Growth Log 解读</div>
-            <div class="impr-response-text" id="impr-resp-${im.id}">${
-              im.emoji==='__loading__'
-                ?'<span style="color:var(--muted)">AI 解读生成中...</span>'
-                :(im.emoji||analyzeImpression(im.content,dmIdx))
-            }</div>
-          </div>
-          <div class="impr-date">${im.date}</div>
-        </div>`).join('')
-      :`<div class="impr-empty">写下你对TA的直觉感受<br>Growth Log 会用 AI 给你解读 🌿</div>`;
+        <div class="chat-row user-row">
+          <div class="chat-ava">${meAvaH}</div>
+          <div class="chat-bubble user-bubble">${im.content.replace(/\n/g,'<br>')}</div>
+        </div>
+        <div class="chat-row">
+          <div class="chat-ava ai-ava">🌿</div>
+          <div class="chat-bubble ai-bubble" id="impr-resp-${im.id}">${
+            im.emoji==='__loading__'
+              ?'<span style="color:var(--muted);font-size:13px">解读中...</span>'
+              :(im.emoji||analyzeImpression(im.content,dmIdx))
+          }</div>
+          <button class="chat-del-btn" onclick="delImpression('${im.id}')">✕</button>
+        </div>
+        <div class="chat-date-row">${im.date}</div>`).join('')
+      :`<div class="chat-empty">写下你对TA的感受<br>Growth Log AI 会帮你解读 🌿</div>`;
 
     tabContent=`
-      <div class="impr-input-wrap">
-        <div class="impr-input-label">我感觉Ta...</div>
-        <textarea class="ft" id="impressionTxt" placeholder="比如：我感觉TA最近不太有活力，好像有点被动…" style="min-height:80px;margin-bottom:10px"></textarea>
-        <button class="sub-btn" onclick="saveImpression()" style="margin-top:0">记录感受</button>
-      </div>
-      ${imprList}`;
+      <div class="chat-wrap">
+        ${bubbles}
+        <div class="chat-input-bar">
+          <textarea class="chat-input" id="impressionTxt" placeholder="说说你的感受..." rows="2"></textarea>
+          <button class="chat-send" onclick="saveImpression()">↑</button>
+        </div>
+      </div>`;
   }
 
   else if(personTab==='frags'){

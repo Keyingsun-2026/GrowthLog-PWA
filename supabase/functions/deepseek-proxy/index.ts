@@ -19,36 +19,21 @@ serve(async (req) => {
       })
     }
 
-    const { impression, personInfo, isSelf } = await req.json()
-
+    const { messages, personInfo, isSelf } = await req.json()
     const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
 
-    let systemPrompt: string, userPrompt: string
+    let systemPrompt: string
 
     if (isSelf) {
-      systemPrompt = `你是 Growth Log 的 AI 助手，帮助用户认识自己。
-用户会分享对自己的感受或观察，你需要给出温暖、有洞察力的自我认知解读。
-回复要简洁（100-150字），语气像一个很懂人的朋友在说话，直接说结论，不要提"八字"或"命理"等术语。`
-
-      userPrompt = `关于我自己：
-- 我的名字：${personInfo.name}
-- 性格标签：${personInfo.dmName}，${personInfo.dmTagline}
-- 核心特质：${personInfo.dmCore}
-
-我的感受：${impression}`
+      systemPrompt = `你是 Growth Log 的 AI 助手，在和用户进行持续对话，帮助Ta认识自己。
+用户的性格标签：${personInfo.dmName}（${personInfo.dmTagline}），核心特质：${personInfo.dmCore}。
+给出温暖、有洞察力的回应，100-150字，像懂人的朋友在说话，直接说结论，不要提"八字"或"命理"。
+记住对话的上下文，前后保持连贯。`
     } else {
-      systemPrompt = `你是 Growth Log 的 AI 助手，帮助用户理解身边的人。
-用户会分享对某人的直觉感受或观察，你需要结合这个人的性格特质，给出温暖、准确、有洞察力的解读。
-回复要简洁（100-150字），语气自然亲切，像一个很懂人的朋友在说话，直接说结论，不要提"八字"或"命理"等术语。`
-
-      userPrompt = `关于这个人：
-- 姓名：${personInfo.name}
-- 和我的关系：${personInfo.relation}
-- 性格标签：${personInfo.dmName}，${personInfo.dmTagline}
-- 性别：${personInfo.gender || '未知'}
-- 核心特质：${personInfo.dmCore}
-
-我的感受：${impression}`
+      systemPrompt = `你是 Growth Log 的 AI 助手，在和用户持续对话，帮助Ta理解身边的人。
+关于这个人：${personInfo.name}（${personInfo.relation}），性别：${personInfo.gender||'未知'}，性格：${personInfo.dmName}（${personInfo.dmTagline}），特质：${personInfo.dmCore}。
+给出温暖、准确、有洞察力的回应，100-150字，像懂人的朋友在说话，直接说结论，不要提"八字"或"命理"。
+记住对话的上下文，前后保持连贯。`
     }
 
     const response = await fetch('https://api.deepseek.com/chat/completions', {
@@ -61,9 +46,9 @@ serve(async (req) => {
         model: 'deepseek-chat',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
+          ...messages
         ],
-        max_tokens: 300,
+        max_tokens: 400,
         temperature: 0.85,
       }),
     })
