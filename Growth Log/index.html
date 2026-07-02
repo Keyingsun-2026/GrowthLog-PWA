@@ -914,7 +914,7 @@ let _user = null;
 let _userEmail = '';
 
 // ════════════ DATA ════════════
-let D = { me:{name:'',birthday:'',photo:null,gender:'女'}, people:[] };
+let D = { me:{name:'',birthday:'',photo:null,gender:'女',selfFragments:[],_selfFragsLoaded:false}, people:[] };
 // save() 已被 Supabase 各操作函数取代，保留空函数供兼容
 function save(){ /* no-op: data saved via Supabase */ }
 
@@ -949,7 +949,7 @@ async function handleAuth(){
 
 async function doSignOut(){
   await _SB.auth.signOut();
-  D={me:{name:'',birthday:'',photo:null,gender:'女'},people:[]};
+  D={me:{name:'',birthday:'',photo:null,gender:'女',selfFragments:[],_selfFragsLoaded:false},people:[]};
   curTab='profile';
 }
 
@@ -965,7 +965,7 @@ async function loadAllData(){
   setPct(15);
   try{
     const{data:p}=await _SB.from('profiles').select('*').eq('id',_user.id).maybeSingle();
-    if(p) D.me={name:p.name||'',birthday:p.birthday||'',photo:p.photo_url||null,gender:p.gender||'女'};
+    if(p) D.me={name:p.name||'',birthday:p.birthday||'',photo:p.photo_url||null,gender:p.gender||'女',selfFragments:[],_selfFragsLoaded:false};
     setPct(55);
 
     const{data:ppl}=await _SB.from('people')
@@ -1516,7 +1516,8 @@ function analyzeImpression(text, dmIdx){
 
 // ════════════ STATE ════════════
 let curPerson=null, fragType='text', fragImg=null, curFeel='😊', personTab='feeling';
-let tmpPhoto={me:null,new:null}, editMode=false, fragOpen=false;
+let tmpPhoto={me:null,new:null}, editMode=false, fragOpen=false, _selfFragMode=false;
+let profileTab='analysis';
 let selMeGender='女', selNewGender='女';
 
 // ════════════ UTILS ════════════
@@ -1612,8 +1613,8 @@ function renderProfileTab(){
   }
   const meInitial=me.name?`<span style="font-size:32px;font-weight:800;color:var(--accent)">${me.name.charAt(0)}</span>`:'<span style="font-size:28px;color:var(--muted)">·</span>';
   const photoH=me.photo?`<img src="${me.photo}" alt="">`:meInitial;
-  const analysisH=me.birthday?buildAnalysisHTML(me.birthday,null,null,me.gender||''):'';
-  el.innerHTML=`
+
+  const heroHTML=`
     <div style="text-align:center;padding:28px 20px 16px">
       <div class="ph-photo" style="margin:0 auto 14px" onclick="openMyProfile()">
         ${photoH}<div class="ph-overlay">📷</div>
@@ -1621,8 +1622,136 @@ function renderProfileTab(){
       <div style="font-size:22px;font-weight:700;margin-bottom:3px">${me.name||''}</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${me.birthday?fmtDate(me.birthday):''}</div>
       ${me.gender?`<span class="gender-badge" style="font-size:12px">${me.gender==='女'?'👩 女':'👨 男'}</span>`:''}
-    </div>
-    <div style="padding:0 15px 90px">${analysisH}</div>`;
+    </div>`;
+
+  const tabBar=`<div class="person-tab-bar">
+    <div class="person-tab ${profileTab==='analysis'?'active':''}" onclick="switchProfileTab('analysis')">日主分析</div>
+    <div class="person-tab ${profileTab==='feeling'?'active':''}" onclick="switchProfileTab('feeling')">我感觉我</div>
+    <div class="person-tab ${profileTab==='frags'?'active':''}" onclick="switchProfileTab('frags')">相处碎片</div>
+  </div>`;
+
+  let tabContent='';
+  if(profileTab==='analysis'){
+    tabContent=me.birthday?buildAnalysisHTML(me.birthday,null,null,me.gender||'')
+      :`<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px">点击右上角编辑，设置生日后生成日主分析</div>`;
+  } else if(profileTab==='feeling'){
+    const impressions=(me.selfFragments||[]).filter(f=>f.type==='impression').slice().reverse();
+    const imprList=impressions.length
+      ?impressions.map(im=>`
+        <div class="impr-entry">
+          <div style="display:flex;align-items:flex-start;gap:6px">
+            <div class="impr-user-bubble" style="flex:1">${im.content.replace(/\n/g,'<br>')}</div>
+            <button class="del-impr" onclick="delMyImpression('${im.id}')">✕</button>
+          </div>
+          <div class="impr-response-wrap">
+            <div class="impr-response-label">✦ Growth Log 解读</div>
+            <div class="impr-response-text" id="impr-resp-${im.id}">${
+              im.emoji==='__loading__'
+                ?'<span style="color:var(--muted)">AI 解读生成中...</span>'
+                :(im.emoji||'')
+            }</div>
+          </div>
+          <div class="impr-date">${im.date}</div>
+        </div>`).join('')
+      :`<div class="impr-empty">写下你对自己的感受或观察<br>Growth Log 会用 AI 帮你解读 🌿</div>`;
+    tabContent=`
+      <div class="impr-input-wrap">
+        <div class="impr-input-label">我感觉我...</div>
+        <textarea class="ft" id="selfImprTxt" placeholder="比如：我最近感觉自己很容易焦虑，好像很难放松下来…" style="min-height:80px;margin-bottom:10px"></textarea>
+        <button class="sub-btn" onclick="saveMyImpression()" style="margin-top:0">记录感受</button>
+      </div>
+      ${imprList}`;
+  } else if(profileTab==='frags'){
+    const frags=(me.selfFragments||[]).filter(f=>f.type!=='impression').slice().reverse();
+    let fragsBody=frags.length?frags.map(f=>{
+      let inner='';
+      if(f.type==='text') inner=`<div class="frag-bubble">${f.content.replace(/\n/g,'<br>')}</div>`;
+      else if(f.type==='image'){const full=f.emoji&&f.emoji.startsWith('data:')?f.emoji:f.content;inner=`<div class="frag-img-wrap" onclick="openLightbox('${full}')"><img src="${f.content}" alt="" class="frag-img-thumb"><span class="frag-img-expand">点击查看</span></div>`;}
+      else inner=`<div class="frag-bubble feel"><span class="feel-ico">${f.emoji}</span>${f.content?`<span class="feel-txt">${f.content.replace(/\n/g,'<br>')}</span>`:''}`;
+      return `<div class="frag">${inner}<div class="frag-date">${f.date}</div><button class="del-frag" onclick="delMySelfFrag('${f.id}')">✕</button></div>`;
+    }).join(''):`<div class="add-first">还没有记录，点击下方按钮开始 🌿</div>`;
+    tabContent=`<div style="margin-bottom:12px">${fragsBody}</div>
+      <button class="frag-add-btn" onclick="openAddSelfFrag()">＋ 添加记录</button>`;
+  }
+
+  el.innerHTML=heroHTML+tabBar+`<div style="padding:0 15px 90px">${tabContent}</div>`;
+}
+
+async function switchProfileTab(tab){
+  profileTab=tab;
+  if((tab==='feeling'||tab==='frags')&&!D.me._selfFragsLoaded){
+    renderProfileTab(); // 先渲染空壳
+    const{data:frags}=await _SB.from('fragments')
+      .select('*')
+      .eq('person_id',_user.id)
+      .eq('user_id',_user.id)
+      .order('created_at',{ascending:true});
+    D.me.selfFragments=(frags||[]).map(f=>({id:f.id,type:f.type,content:f.content||'',emoji:f.emoji||'',date:f.frag_date||''}));
+    D.me._selfFragsLoaded=true;
+  }
+  renderProfileTab();
+}
+
+async function saveMyImpression(){
+  const txt=document.getElementById('selfImprTxt')?.value.trim();
+  if(!txt){toast('请写下你的感受');return;}
+  const dateStr=nowStr();
+  const{data,error}=await _SB.from('fragments').insert({
+    person_id:_user.id,user_id:_user.id,
+    type:'impression',content:txt,frag_date:dateStr
+  }).select().single();
+  if(error||!data){toast('保存失败');return;}
+  if(!D.me.selfFragments) D.me.selfFragments=[];
+  D.me.selfFragments.push({id:data.id,type:'impression',content:txt,emoji:'__loading__',date:dateStr});
+  document.getElementById('selfImprTxt').value='';
+  renderProfileTab();
+  toast('感受已记录，AI 解读中... ✦');
+  try{
+    const dmIdx=D.me.birthday?calcPillars(D.me.birthday).day.stem:null;
+    const selfInfo={
+      name:D.me.name,
+      dmName:dmIdx!==null?STEMS[dmIdx]+EL_NAME[ST_ELEM[dmIdx]]:'',
+      dmTagline:dmIdx!==null?DM_DATA[dmIdx].tagline:'',
+      dmCore:dmIdx!==null?DM_DATA[dmIdx].core.map(c=>c.t).join('、'):''
+    };
+    const resp=await fetch(_SB_URL+'/functions/v1/deepseek-proxy',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_sbSession?.access_token||''),'apikey':_SB_KEY},
+      body:JSON.stringify({impression:txt,personInfo:selfInfo,isSelf:true})
+    });
+    const result=await resp.json();
+    const aiReply=result.content||'你的感受很真实，这种对自己的觉察本身就很有价值。';
+    await _SB.from('fragments').update({emoji:aiReply}).eq('id',data.id);
+    const frag=D.me.selfFragments.find(f=>f.id===data.id);
+    if(frag) frag.emoji=aiReply;
+    const el=document.getElementById('impr-resp-'+data.id);
+    if(el) el.innerHTML=aiReply;
+  }catch(e){
+    const frag=D.me.selfFragments.find(f=>f.id===data.id);
+    if(frag) frag.emoji='';
+    const el=document.getElementById('impr-resp-'+data.id);
+    if(el) el.innerHTML='';
+  }
+}
+
+async function delMyImpression(fid){
+  showConfirm('删除这条感受记录？',async()=>{
+    const{error}=await _SB.from('fragments').delete().eq('id',fid);
+    if(error){toast('删除失败');return;}
+    D.me.selfFragments=(D.me.selfFragments||[]).filter(f=>f.id!==fid);
+    renderProfileTab(); toast('已删除');
+  });
+}
+
+function openAddSelfFrag(){_selfFragMode=true;openAddFrag();}
+
+async function delMySelfFrag(fid){
+  showConfirm('删除这条记录？',async()=>{
+    const{error}=await _SB.from('fragments').delete().eq('id',fid);
+    if(error){toast('删除失败');return;}
+    D.me.selfFragments=(D.me.selfFragments||[]).filter(f=>f.id!==fid);
+    renderProfileTab(); toast('已删除');
+  });
 }
 
 // ════════════ CIRCLE TAB ════════════
@@ -2147,29 +2276,35 @@ function handleFragImg(e){
   r.readAsDataURL(file); e.target.value='';
 }
 async function saveFrag(){
-  if(!curPerson) return;
+  if(!_selfFragMode && !curPerson) return;
   let content='',emoji=null;
   if(fragType==='text'){content=document.getElementById('fragTxt').value.trim();if(!content){toast('请写点什么');return;}}
   else if(fragType==='image'){
     if(!fragImg){toast('请选择图片');return;}
     toast('处理中...');
-    // 缩略图：极小，列表显示用（~5KB）
     content=await compressImage(fragImg,120,0.5);
-    // 全图：较清晰，点开查看用（~40KB）
     emoji=await compressImage(fragImg,700,0.82);
   }
   else{emoji=curFeel;content=document.getElementById('feelTxt').value.trim();}
   const dateStr=nowStr();
+  const personId=_selfFragMode?_user.id:curPerson.id;
   const{data,error}=await _SB.from('fragments').insert({
-    person_id:curPerson.id,user_id:_user.id,
+    person_id:personId,user_id:_user.id,
     type:fragType,content,emoji,frag_date:dateStr
   }).select().single();
-  if(error||!data){toast('保存失败');return;}
-  if(!curPerson.fragments) curPerson.fragments=[];
-  curPerson.fragments.push({id:data.id,type:fragType,content,emoji:emoji||'',date:dateStr});
-  renderPerson();
-  document.getElementById('mFrag').classList.remove('open');
-  fragOpen=true; toast('已记录 ✦');
+  if(error||!data){_selfFragMode=false;toast('保存失败');return;}
+  if(_selfFragMode){
+    if(!D.me.selfFragments) D.me.selfFragments=[];
+    D.me.selfFragments.push({id:data.id,type:fragType,content,emoji:emoji||'',date:dateStr});
+    _selfFragMode=false;
+    document.getElementById('mFrag').classList.remove('open');
+    renderProfileTab(); toast('已记录 ✦');
+  } else {
+    if(!curPerson.fragments) curPerson.fragments=[];
+    curPerson.fragments.push({id:data.id,type:fragType,content,emoji:emoji||'',date:dateStr});
+    document.getElementById('mFrag').classList.remove('open');
+    fragOpen=true; renderPerson(); toast('已记录 ✦');
+  }
 }
 
 // ════════════ LIGHTBOX ════════════
@@ -2343,7 +2478,7 @@ async function confirmClearData(){
   await _SB.from('fragments').delete().eq('user_id',_user.id);
   await _SB.from('people').delete().eq('user_id',_user.id);
   await _SB.from('profiles').delete().eq('id',_user.id);
-  D={me:{name:'',birthday:'',photo:null,gender:'女'},people:[]};
+  D={me:{name:'',birthday:'',photo:null,gender:'女',selfFragments:[],_selfFragsLoaded:false},people:[]};
   document.getElementById('confirmClear').classList.remove('open');
   renderProfileTab(); renderCircleTab(); renderSettingsTab();
   toast('数据已清除');
@@ -2827,7 +2962,7 @@ _SB.auth.onAuthStateChange(async (event, session) => {
     else renderProfileTab();
   } else if(event==='SIGNED_OUT'){
     _user=null; _userEmail='';
-    D={me:{name:'',birthday:'',photo:null,gender:'女'},people:[]};
+    D={me:{name:'',birthday:'',photo:null,gender:'女',selfFragments:[],_selfFragsLoaded:false},people:[]};
     showAuthScreen();
   }
 });

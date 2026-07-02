@@ -11,7 +11,6 @@ serve(async (req) => {
   }
 
   try {
-    // 验证登录状态
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(JSON.stringify({ error: '未授权' }), {
@@ -20,16 +19,29 @@ serve(async (req) => {
       })
     }
 
-    const { impression, personInfo } = await req.json()
+    const { impression, personInfo, isSelf } = await req.json()
 
     const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
-    console.log('API key present:', !!apiKey, 'length:', apiKey?.length)
 
-    const systemPrompt = `你是 Growth Log 的 AI 助手，帮助用户理解身边的人。
+    let systemPrompt: string, userPrompt: string
+
+    if (isSelf) {
+      systemPrompt = `你是 Growth Log 的 AI 助手，帮助用户认识自己。
+用户会分享对自己的感受或观察，你需要给出温暖、有洞察力的自我认知解读。
+回复要简洁（100-150字），语气像一个很懂人的朋友在说话，直接说结论，不要提"八字"或"命理"等术语。`
+
+      userPrompt = `关于我自己：
+- 我的名字：${personInfo.name}
+- 性格标签：${personInfo.dmName}，${personInfo.dmTagline}
+- 核心特质：${personInfo.dmCore}
+
+我的感受：${impression}`
+    } else {
+      systemPrompt = `你是 Growth Log 的 AI 助手，帮助用户理解身边的人。
 用户会分享对某人的直觉感受或观察，你需要结合这个人的性格特质，给出温暖、准确、有洞察力的解读。
 回复要简洁（100-150字），语气自然亲切，像一个很懂人的朋友在说话，直接说结论，不要提"八字"或"命理"等术语。`
 
-    const userPrompt = `关于这个人：
+      userPrompt = `关于这个人：
 - 姓名：${personInfo.name}
 - 和我的关系：${personInfo.relation}
 - 性格标签：${personInfo.dmName}，${personInfo.dmTagline}
@@ -37,6 +49,7 @@ serve(async (req) => {
 - 核心特质：${personInfo.dmCore}
 
 我的感受：${impression}`
+    }
 
     const response = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
@@ -55,12 +68,10 @@ serve(async (req) => {
       }),
     })
 
-    console.log('DeepSeek status:', response.status)
     const data = await response.json()
-    console.log('DeepSeek response:', JSON.stringify(data).slice(0, 500))
 
     if (!response.ok) {
-      return new Response(JSON.stringify({ error: data.error?.message || 'DeepSeek API error', status: response.status }), {
+      return new Response(JSON.stringify({ error: data.error?.message || 'DeepSeek API error' }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
@@ -72,7 +83,6 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
-    console.log('Caught error:', error.message)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
