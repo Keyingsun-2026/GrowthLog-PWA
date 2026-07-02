@@ -383,7 +383,16 @@ input,textarea{max-width:100%;box-sizing:border-box}
 .person-tab.active{background:var(--card);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.08)}
 
 /* ── Chat UI ── */
-.chat-wrap{padding-bottom:4px}
+/* Chat mode containers: lock outer scroll, flex-column so inner chat fills space */
+#vPerson.chat-mode{overflow:hidden!important;display:flex;flex-direction:column}
+#vPerson.chat-mode #vPersonBody{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;padding-bottom:0!important}
+#tabProfile.chat-mode{overflow:hidden!important;display:flex;flex-direction:column}
+#tabProfile.chat-mode #profileContent{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.chat-tab-content{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;padding:0 15px 8px}
+/* Chat wrap is the flex column host */
+.chat-wrap{flex:1;display:flex;flex-direction:column;min-height:0}
+/* Scrollable messages area with border */
+.chat-messages{flex:1;min-height:0;overflow-y:auto;border:1.5px solid var(--border);border-radius:14px;padding:10px 8px;background:var(--bg);-webkit-overflow-scrolling:touch}
 .chat-row{display:flex;align-items:flex-end;gap:8px;margin-bottom:6px;padding:0 2px}
 .chat-row.user-row{flex-direction:row-reverse}
 .chat-ava{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;overflow:hidden;background:var(--warm);color:var(--warm2)}
@@ -395,7 +404,8 @@ input,textarea{max-width:100%;box-sizing:border-box}
 .chat-date-row{text-align:center;font-size:11px;color:var(--muted);margin:2px 0 10px}
 .chat-del-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;padding:2px 4px;flex-shrink:0;align-self:flex-start;margin-top:2px;opacity:.5;touch-action:manipulation}
 .chat-empty{text-align:center;padding:32px 16px;color:var(--muted);font-size:13px;line-height:1.9}
-.chat-input-bar{display:flex;gap:8px;align-items:flex-end;padding:10px 0 4px;border-top:1px solid var(--border);margin-top:10px}
+/* Input bar stays fixed at bottom, never scrolls */
+.chat-input-bar{flex-shrink:0;display:flex;gap:8px;align-items:flex-end;padding:10px 0 4px;border-top:1px solid var(--border);margin-top:8px}
 .chat-input{flex:1;border:1.5px solid var(--border);border-radius:20px;padding:9px 14px;font-size:14px;resize:none;background:var(--card);color:var(--text);font-family:inherit;line-height:1.5;outline:none;min-height:38px;max-height:90px;overflow-y:auto}
 .chat-send{width:36px;height:36px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;color:#fff;font-size:17px;flex-shrink:0;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
 
@@ -1643,7 +1653,7 @@ function renderProfileTab(){
     tabContent=me.birthday?buildAnalysisHTML(me.birthday,null,null,me.gender||'')
       :`<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px">点击右上角编辑，设置生日后生成日主分析</div>`;
   } else if(profileTab==='feeling'){
-    const impressions=(me.selfFragments||[]).filter(f=>f.type==='impression').slice().reverse();
+    const impressions=(me.selfFragments||[]).filter(f=>f.type==='impression'); // 聊天顺序：旧→新
     const meAvaH=me.photo?`<img src="${me.photo}">`:(me.name?me.name.charAt(0):'我');
     const bubbles=impressions.length
       ?impressions.map(im=>`
@@ -1664,7 +1674,7 @@ function renderProfileTab(){
       :`<div class="chat-empty">写下你对自己的感受或观察<br>Growth Log AI 会帮你解读 🌿</div>`;
     tabContent=`
       <div class="chat-wrap">
-        ${bubbles}
+        <div class="chat-messages" id="chatMessages">${bubbles}</div>
         <div class="chat-input-bar">
           <textarea class="chat-input" id="selfImprTxt" placeholder="说说你最近的感受..." rows="2"></textarea>
           <button class="chat-send" onclick="saveMyImpression()">↑</button>
@@ -1683,7 +1693,14 @@ function renderProfileTab(){
       <button class="frag-add-btn" onclick="openAddSelfFrag()">＋ 添加记录</button>`;
   }
 
-  el.innerHTML=heroHTML+tabBar+`<div style="padding:0 15px 90px;margin-top:12px">${tabContent}</div>`;
+  const isChat=profileTab==='feeling';
+  document.getElementById('tabProfile').classList.toggle('chat-mode',isChat);
+  el.innerHTML=heroHTML+tabBar+(isChat
+    ?`<div class="chat-tab-content">${tabContent}</div>`
+    :`<div style="padding:0 15px 90px;margin-top:12px">${tabContent}</div>`);
+  if(isChat){
+    setTimeout(()=>{const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight;},60);
+  }
 }
 
 async function getSelfPersonId(){
@@ -1977,8 +1994,8 @@ async function saveImpression(){
   curPerson.fragments.push({id:data.id,type:'impression',content:txt,emoji:'__loading__',date:dateStr});
   document.getElementById('impressionTxt').value='';
   renderPerson();
-  // 滚到底部
-  setTimeout(()=>{const v=document.getElementById('vPerson');if(v)v.scrollTop=v.scrollHeight;},60);
+  // 滚到底部（renderPerson 内也会触发，此处保险再触发一次）
+  setTimeout(()=>{const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight;},80);
 
   try{
     const dmIdx=curPerson.birthday?calcPillars(curPerson.birthday).day.stem:null;
@@ -2064,7 +2081,7 @@ function renderPerson(){
     </div>`;
 
   const allFrags=p.fragments||[];
-  const impressions=allFrags.filter(f=>f.type==='impression').slice().reverse();
+  const impressions=allFrags.filter(f=>f.type==='impression'); // 聊天顺序：旧→新
   const frags=allFrags.filter(f=>f.type!=='impression').slice().reverse();
 
   let tabContent='';
@@ -2097,7 +2114,7 @@ function renderPerson(){
 
     tabContent=`
       <div class="chat-wrap">
-        ${bubbles}
+        <div class="chat-messages" id="chatMessages">${bubbles}</div>
         <div class="chat-input-bar">
           <textarea class="chat-input" id="impressionTxt" placeholder="说说你的感受..." rows="2"></textarea>
           <button class="chat-send" onclick="saveImpression()">↑</button>
@@ -2126,6 +2143,11 @@ function renderPerson(){
   }
 
   document.getElementById('vPersonBody').innerHTML=heroHTML+tabContent;
+  // Toggle chat-mode: lock outer scroll, let inner chat-messages scroll
+  document.getElementById('vPerson').classList.toggle('chat-mode',personTab==='feeling');
+  if(personTab==='feeling'){
+    setTimeout(()=>{const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight;},60);
+  }
 
   // FAB 始终隐藏（用内嵌按钮代替）
   const fab=document.querySelector('#vPerson .fab');
