@@ -1635,11 +1635,12 @@ function renderProfileTab(){
     return;
   }
   const isChat=profileTab==='feeling';
+  const isCompact=profileTab==='feeling'||profileTab==='frags';
   const meInitial=me.name?`<span style="font-size:32px;font-weight:800;color:var(--accent)">${me.name.charAt(0)}</span>`:'<span style="font-size:28px;color:var(--muted)">·</span>';
   const photoH=me.photo?`<img src="${me.photo}" alt="">`:meInitial;
   const miniPhotoH=me.photo?`<img src="${me.photo}" alt="">`:(me.name?`<span style="font-size:14px;font-weight:700;color:var(--accent)">${me.name.charAt(0)}</span>`:`<span style="font-size:14px;color:var(--muted)">·</span>`);
 
-  const heroHTML=isChat
+  const heroHTML=isCompact
     ?`<div class="chat-person-bar">
         <div class="mini-ava">${miniPhotoH}</div>
         <div class="chat-person-name">${me.name||'我'}</div>
@@ -1653,7 +1654,7 @@ function renderProfileTab(){
       ${me.gender?`<span class="gender-badge" style="font-size:12px">${me.gender==='女'?'👩 女':'👨 男'}</span>`:''}
     </div>`;
 
-  const tabBar=`<div style="padding:0 4px;margin-top:${isChat?'4px':'14px'};margin-bottom:2px"><div class="person-tab-bar" style="margin:0">
+  const tabBar=`<div style="padding:0 4px;margin-top:${isCompact?'4px':'14px'};margin-bottom:2px"><div class="person-tab-bar" style="margin:0">
     <div class="person-tab ${profileTab==='analysis'?'active':''}" onclick="switchProfileTab('analysis')">日主分析</div>
     <div class="person-tab ${profileTab==='feeling'?'active':''}" onclick="switchProfileTab('feeling')">我感觉我</div>
     <div class="person-tab ${profileTab==='frags'?'active':''}" onclick="switchProfileTab('frags')">相处碎片</div>
@@ -2080,7 +2081,7 @@ function renderPerson(){
   let dmIdx=null;
   if(p.birthday){ try{ dmIdx=calcPillars(p.birthday).day.stem; }catch{} }
 
-  const heroHTML=personTab==='feeling'
+  const heroHTML=(personTab==='feeling'||personTab==='frags')
     ?`<div class="chat-person-bar">
         <div class="mini-ava" style="${!p.photo?`background:${defaultAvaBg(p.relation,cf)}`:''}">${miniPhotoH}</div>
         <div class="chat-person-name">${p.name||'未命名'}</div>
