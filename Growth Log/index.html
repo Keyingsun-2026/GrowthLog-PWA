@@ -389,6 +389,11 @@ input,textarea{max-width:100%;box-sizing:border-box}
 #tabProfile.chat-mode{overflow:hidden!important;display:flex;flex-direction:column}
 #tabProfile.chat-mode #profileContent{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column}
 .chat-tab-content{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;padding:0 15px 8px}
+/* Compact hero bar for chat mode */
+.chat-person-bar{display:flex;align-items:center;gap:10px;padding:8px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
+.mini-ava{width:36px;height:36px;border-radius:50%;background:var(--warm);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.mini-ava img{width:100%;height:100%;object-fit:cover}
+.chat-person-name{font-size:14px;font-weight:600}
 /* Chat wrap is the flex column host */
 .chat-wrap{flex:1;display:flex;flex-direction:column;min-height:0}
 /* Scrollable messages area with border */
@@ -405,7 +410,7 @@ input,textarea{max-width:100%;box-sizing:border-box}
 .chat-del-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;padding:2px 4px;flex-shrink:0;align-self:flex-start;margin-top:2px;opacity:.5;touch-action:manipulation}
 .chat-empty{text-align:center;padding:32px 16px;color:var(--muted);font-size:13px;line-height:1.9}
 /* Input bar stays fixed at bottom, never scrolls */
-.chat-input-bar{flex-shrink:0;display:flex;gap:8px;align-items:flex-end;padding:10px 0 4px;border-top:1px solid var(--border);margin-top:8px}
+.chat-input-bar{flex-shrink:0;display:flex;gap:8px;align-items:flex-end;padding:10px 0 max(10px,env(safe-area-inset-bottom,10px));border-top:1px solid var(--border);margin-top:8px}
 .chat-input{flex:1;border:1.5px solid var(--border);border-radius:20px;padding:9px 14px;font-size:14px;resize:none;background:var(--card);color:var(--text);font-family:inherit;line-height:1.5;outline:none;min-height:38px;max-height:90px;overflow-y:auto}
 .chat-send{width:36px;height:36px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;color:#fff;font-size:17px;flex-shrink:0;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
 
@@ -1629,11 +1634,17 @@ function renderProfileTab(){
     </div>`;
     return;
   }
+  const isChat=profileTab==='feeling';
   const meInitial=me.name?`<span style="font-size:32px;font-weight:800;color:var(--accent)">${me.name.charAt(0)}</span>`:'<span style="font-size:28px;color:var(--muted)">·</span>';
   const photoH=me.photo?`<img src="${me.photo}" alt="">`:meInitial;
+  const miniPhotoH=me.photo?`<img src="${me.photo}" alt="">`:(me.name?`<span style="font-size:14px;font-weight:700;color:var(--accent)">${me.name.charAt(0)}</span>`:`<span style="font-size:14px;color:var(--muted)">·</span>`);
 
-  const heroHTML=`
-    <div style="text-align:center;padding:28px 20px 16px">
+  const heroHTML=isChat
+    ?`<div class="chat-person-bar">
+        <div class="mini-ava">${miniPhotoH}</div>
+        <div class="chat-person-name">${me.name||'我'}</div>
+      </div>`
+    :`<div style="text-align:center;padding:28px 20px 16px">
       <div class="ph-photo" style="margin:0 auto 14px" onclick="openMyProfile()">
         ${photoH}<div class="ph-overlay">📷</div>
       </div>
@@ -1642,7 +1653,7 @@ function renderProfileTab(){
       ${me.gender?`<span class="gender-badge" style="font-size:12px">${me.gender==='女'?'👩 女':'👨 男'}</span>`:''}
     </div>`;
 
-  const tabBar=`<div style="padding:0 4px;margin-top:14px;margin-bottom:2px"><div class="person-tab-bar" style="margin:0">
+  const tabBar=`<div style="padding:0 4px;margin-top:${isChat?'4px':'14px'};margin-bottom:2px"><div class="person-tab-bar" style="margin:0">
     <div class="person-tab ${profileTab==='analysis'?'active':''}" onclick="switchProfileTab('analysis')">日主分析</div>
     <div class="person-tab ${profileTab==='feeling'?'active':''}" onclick="switchProfileTab('feeling')">我感觉我</div>
     <div class="person-tab ${profileTab==='frags'?'active':''}" onclick="switchProfileTab('frags')">相处碎片</div>
@@ -1693,13 +1704,12 @@ function renderProfileTab(){
       <button class="frag-add-btn" onclick="openAddSelfFrag()">＋ 添加记录</button>`;
   }
 
-  const isChat=profileTab==='feeling';
   document.getElementById('tabProfile').classList.toggle('chat-mode',isChat);
   el.innerHTML=heroHTML+tabBar+(isChat
     ?`<div class="chat-tab-content">${tabContent}</div>`
     :`<div style="padding:0 15px 90px;margin-top:12px">${tabContent}</div>`);
   if(isChat){
-    setTimeout(()=>{const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight;},60);
+    setTimeout(()=>{const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight;},150);
   }
 }
 
@@ -1995,7 +2005,7 @@ async function saveImpression(){
   document.getElementById('impressionTxt').value='';
   renderPerson();
   // 滚到底部（renderPerson 内也会触发，此处保险再触发一次）
-  setTimeout(()=>{const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight;},80);
+  setTimeout(()=>{const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight;},200);
 
   try{
     const dmIdx=curPerson.birthday?calcPillars(curPerson.birthday).day.stem:null;
@@ -2063,12 +2073,20 @@ function renderPerson(){
   const photoH=p.photo
     ?`<img src="${p.photo}" alt="">`
     :`<span style="font-size:32px;font-weight:800;color:${defaultAvaColor(p.relation,cf)}">${personInitial(p.name)}</span>`;
+  const miniPhotoH=p.photo
+    ?`<img src="${p.photo}" alt="">`
+    :`<span style="font-size:14px;font-weight:800;color:${defaultAvaColor(p.relation,cf)}">${personInitial(p.name)}</span>`;
 
   let dmIdx=null;
   if(p.birthday){ try{ dmIdx=calcPillars(p.birthday).day.stem; }catch{} }
 
-  const heroHTML=`
-    <div class="p-hero">
+  const heroHTML=personTab==='feeling'
+    ?`<div class="chat-person-bar">
+        <div class="mini-ava" style="${!p.photo?`background:${defaultAvaBg(p.relation,cf)}`:''}">${miniPhotoH}</div>
+        <div class="chat-person-name">${p.name||'未命名'}</div>
+        <span class="rel-tag ${relCls(p.relation,cf)}">${p.relation}</span>
+      </div>`
+    :`<div class="p-hero">
       <div class="ph-photo" onclick="document.getElementById('fPerson').click()" style="${!p.photo?`background:${defaultAvaBg(p.relation,cf)}`:''}">
         ${photoH}<div class="ph-overlay">📷</div>
       </div>
@@ -2146,7 +2164,7 @@ function renderPerson(){
   // Toggle chat-mode: lock outer scroll, let inner chat-messages scroll
   document.getElementById('vPerson').classList.toggle('chat-mode',personTab==='feeling');
   if(personTab==='feeling'){
-    setTimeout(()=>{const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight;},60);
+    setTimeout(()=>{const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight;},150);
   }
 
   // FAB 始终隐藏（用内嵌按钮代替）
