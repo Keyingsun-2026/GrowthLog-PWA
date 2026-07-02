@@ -378,8 +378,8 @@ input,textarea{max-width:100%;box-sizing:border-box}
 #loadingPct{font-size:26px;font-weight:700;color:var(--accent);letter-spacing:1px;margin-top:2px}
 
 /* ── Person Tabs ── */
-.person-tab-bar{display:flex;background:var(--bg);border-radius:20px;padding:2px;gap:2px;flex:1;margin:0 8px}
-.person-tab{flex:1;text-align:center;padding:5px 6px;border-radius:18px;font-size:11.5px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .2s;white-space:nowrap;touch-action:manipulation;user-select:none}
+.person-tab-bar{display:flex;background:var(--gold-lt);border-radius:20px;padding:2px;gap:2px;flex:1;margin:0 8px}
+.person-tab{flex:1;text-align:center;padding:5px 6px;border-radius:18px;font-size:11.5px;font-weight:600;color:var(--warm2);cursor:pointer;transition:all .2s;white-space:nowrap;touch-action:manipulation;user-select:none}
 .person-tab.active{background:var(--card);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.08)}
 
 /* ── Impression Section ── */
@@ -1624,11 +1624,11 @@ function renderProfileTab(){
       ${me.gender?`<span class="gender-badge" style="font-size:12px">${me.gender==='女'?'👩 女':'👨 男'}</span>`:''}
     </div>`;
 
-  const tabBar=`<div class="person-tab-bar">
+  const tabBar=`<div style="padding:0 4px;margin-top:14px;margin-bottom:2px"><div class="person-tab-bar" style="margin:0">
     <div class="person-tab ${profileTab==='analysis'?'active':''}" onclick="switchProfileTab('analysis')">日主分析</div>
     <div class="person-tab ${profileTab==='feeling'?'active':''}" onclick="switchProfileTab('feeling')">我感觉我</div>
     <div class="person-tab ${profileTab==='frags'?'active':''}" onclick="switchProfileTab('frags')">相处碎片</div>
-  </div>`;
+  </div></div>`;
 
   let tabContent='';
   if(profileTab==='analysis'){
