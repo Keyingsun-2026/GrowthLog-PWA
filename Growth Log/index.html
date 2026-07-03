@@ -958,13 +958,59 @@ async function handleResetPw(){
   if(!email){errEl.className='auth-err';errEl.textContent='请先填写邮箱';return;}
   errEl.className='auth-err';errEl.textContent='发送中...';
   try{
+    const redirectTo=window.location.origin+window.location.pathname;
     const res=await fetch(_SB_URL+'/auth/v1/recover',{
       method:'POST',
       headers:{'apikey':_SB_KEY,'Content-Type':'application/json'},
-      body:JSON.stringify({email})
+      body:JSON.stringify({email,redirectTo})
     });
     if(res.ok){errEl.className='auth-ok';errEl.textContent='重置邮件已发送，请查收 📩';}
     else{errEl.className='auth-err';errEl.textContent='发送失败，请检查邮箱是否正确';}
+  }catch(e){errEl.className='auth-err';errEl.textContent='网络错误，请重试';}
+}
+
+// 点重置邮件链接后，URL hash 里含 type=recovery，在此处理
+function _parseHashParams(){
+  const h=window.location.hash.replace(/^#/,'');
+  const p={};
+  h.split('&').forEach(seg=>{const[k,v]=seg.split('=');if(k)p[decodeURIComponent(k)]=decodeURIComponent(v||'');});
+  return p;
+}
+function showSetPasswordForm(token){
+  document.getElementById('appRoot').style.display='none';
+  document.getElementById('authScreen').style.display='flex';
+  document.querySelector('.auth-card').innerHTML=`
+    <div style="text-align:center;margin-bottom:18px">
+      <div style="font-size:22px;margin-bottom:6px">🔑</div>
+      <div style="font-size:16px;font-weight:700">设置新密码</div>
+    </div>
+    <div class="fg"><label>新密码</label><input class="fi" type="password" id="newPw1" placeholder="至少 6 位"></div>
+    <div class="fg"><label>确认密码</label><input class="fi" type="password" id="newPw2" placeholder="再输一次"></div>
+    <div class="auth-err" id="resetErr"></div>
+    <button class="sub-btn" onclick="doSetPassword('${token}')" style="margin-top:0">确认设置</button>
+  `;
+  history.replaceState(null,'',window.location.pathname);
+}
+async function doSetPassword(token){
+  const p1=document.getElementById('newPw1').value;
+  const p2=document.getElementById('newPw2').value;
+  const errEl=document.getElementById('resetErr');
+  if(p1.length<6){errEl.className='auth-err';errEl.textContent='密码至少 6 位';return;}
+  if(p1!==p2){errEl.className='auth-err';errEl.textContent='两次密码不一致';return;}
+  errEl.className='auth-err';errEl.textContent='设置中...';
+  try{
+    const res=await fetch(_SB_URL+'/auth/v1/user',{
+      method:'PUT',
+      headers:{'apikey':_SB_KEY,'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+      body:JSON.stringify({password:p1})
+    });
+    if(res.ok){
+      errEl.className='auth-ok';errEl.textContent='密码已重置！正在跳转登录...';
+      setTimeout(()=>location.reload(),1800);
+    } else {
+      const d=await res.json().catch(()=>({}));
+      errEl.className='auth-err';errEl.textContent=d.message||'设置失败，请重试';
+    }
   }catch(e){errEl.className='auth-err';errEl.textContent='网络错误，请重试';}
 }
 
@@ -3070,6 +3116,14 @@ _SB.auth.onAuthStateChange(async (event, session) => {
 });
 
 (async()=>{
+  // 检查是否是密码重置链接跳转回来
+  const hp=_parseHashParams();
+  if(hp.type==='recovery'&&hp.access_token){
+    document.getElementById('loadingOverlay').style.display='none';
+    showSetPasswordForm(hp.access_token);
+    return;
+  }
+
   // 先显示 loading，静默检查 session，已登录直接进 app
   document.getElementById('loadingOverlay').style.display='flex';
   setPct(5);
