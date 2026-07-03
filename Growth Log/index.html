@@ -451,6 +451,9 @@ input,textarea{max-width:100%;box-sizing:border-box}
       <div class="auth-err" id="authErr"></div>
       <button class="sub-btn" id="authBtn" type="submit" style="margin-top:0">登录</button>
     </form>
+    <div style="text-align:center;margin-top:12px">
+      <button onclick="handleResetPw()" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;text-decoration:underline;touch-action:manipulation">忘记密码？发送重置邮件</button>
+    </div>
   </div>
 </div>
 
@@ -947,6 +950,22 @@ function setAuthMode(mode){
   document.getElementById('tabRegister').classList.toggle('active', mode==='register');
   document.getElementById('authBtn').textContent = mode==='login'?'登录':'注册';
   document.getElementById('authErr').textContent='';
+}
+
+async function handleResetPw(){
+  const email=document.getElementById('authEmail').value.trim();
+  const errEl=document.getElementById('authErr');
+  if(!email){errEl.className='auth-err';errEl.textContent='请先填写邮箱';return;}
+  errEl.className='auth-err';errEl.textContent='发送中...';
+  try{
+    const res=await fetch(_SB_URL+'/auth/v1/recover',{
+      method:'POST',
+      headers:{'apikey':_SB_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({email})
+    });
+    if(res.ok){errEl.className='auth-ok';errEl.textContent='重置邮件已发送，请查收 📩';}
+    else{errEl.className='auth-err';errEl.textContent='发送失败，请检查邮箱是否正确';}
+  }catch(e){errEl.className='auth-err';errEl.textContent='网络错误，请重试';}
 }
 
 async function handleAuth(){
