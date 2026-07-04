@@ -406,8 +406,25 @@ input,textarea{max-width:100%;box-sizing:border-box}
 .chat-bubble{max-width:76%;padding:9px 13px;font-size:14px;line-height:1.65;word-break:break-word;position:relative}
 .user-bubble{background:var(--accent);color:#fff;border-radius:16px 16px 4px 16px}
 .ai-bubble{background:var(--card);color:var(--text);border-radius:16px 16px 16px 4px;border:1px solid var(--border)}
-.chat-date-row{text-align:center;font-size:11px;color:var(--muted);margin:2px 0 10px}
+.chat-date-row{display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;color:var(--muted);margin:2px 0 10px}
 .chat-del-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;padding:2px 4px;flex-shrink:0;align-self:flex-start;margin-top:2px;opacity:.5;touch-action:manipulation}
+/* Memory pin button */
+.mem-pin-btn{background:none;border:1px solid var(--border);border-radius:50%;width:18px;height:18px;font-size:12px;line-height:1;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;touch-action:manipulation}
+.mem-pin-btn:active{background:var(--accent-lt);color:var(--accent);border-color:var(--accent)}
+/* 人物画像 section */
+.memories-section{margin:20px 0 8px;border-radius:14px;overflow:hidden;border:1.5px solid var(--border)}
+.memories-header{padding:13px 16px;display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--card);touch-action:manipulation}
+.memories-header-title{font-size:14px;font-weight:700;flex:1}
+.mem-count-badge{font-size:11px;color:var(--muted);background:var(--bg);padding:2px 8px;border-radius:10px;border:1px solid var(--border)}
+.mem-arrow{color:var(--muted);font-size:12px;transition:transform .2s;display:inline-block}
+.mem-arrow.open{transform:rotate(180deg)}
+.memories-body{display:none;padding:0 16px}
+.memories-body.open{display:block}
+.memory-item{padding:12px 0;border-bottom:1px solid var(--border);position:relative}
+.memory-item:last-child{border-bottom:none}
+.memory-content{font-size:13px;line-height:1.65;color:var(--text);padding-right:22px}
+.memory-date{font-size:11px;color:var(--muted);margin-top:4px}
+.memory-del{position:absolute;top:12px;right:0;background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;opacity:.5;touch-action:manipulation}
 .chat-empty{text-align:center;padding:32px 16px;color:var(--muted);font-size:13px;line-height:1.9}
 /* Input bar stays fixed at bottom, never scrolls */
 .chat-input-bar{flex-shrink:0;display:flex;gap:8px;align-items:flex-end;padding:8px 0 max(10px,env(safe-area-inset-bottom,0px));border-top:1px solid var(--border);margin-top:6px}
@@ -1768,8 +1785,10 @@ function renderProfileTab(){
 
   let tabContent='';
   if(profileTab==='analysis'){
-    tabContent=me.birthday?buildAnalysisHTML(me.birthday,null,null,me.gender||'')
-      :`<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px">点击右上角编辑，设置生日后生成日主分析</div>`;
+    const selfMems=(me.selfFragments||[]).filter(f=>f.type==='memory');
+    tabContent=(me.birthday?buildAnalysisHTML(me.birthday,null,null,me.gender||'')
+      :`<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px">点击右上角编辑，设置生日后生成日主分析</div>`)
+      +buildMemoriesHTML(selfMems);
   } else if(profileTab==='feeling'){
     const impressions=(me.selfFragments||[]).filter(f=>f.type==='impression'); // 聊天顺序：旧→新
     const meAvaH=me.photo?`<img src="${me.photo}">`:(me.name?me.name.charAt(0):'我');
@@ -1790,7 +1809,10 @@ function renderProfileTab(){
           }</div>
           <button class="chat-del-btn" onclick="delMyImpression('${im.id}')">✕</button>
         </div>
-        <div class="chat-date-row">${im.date}</div>`).join('')
+        <div class="chat-date-row">
+          <button class="mem-pin-btn" onclick="pinSelfToMemory('${im.id}')" title="加入人物画像">＋</button>
+          ${im.date}
+        </div>`).join('')
         :`<div class="chat-empty">写下你对自己的感受或观察<br>Growth Log AI 会帮你解读 🌿</div>`;
     tabContent=`
       <div class="chat-wrap">
@@ -1801,13 +1823,13 @@ function renderProfileTab(){
         </div>
       </div>`;
   } else if(profileTab==='frags'){
-    const frags=(me.selfFragments||[]).filter(f=>f.type!=='impression').slice().reverse();
+    const frags=(me.selfFragments||[]).filter(f=>f.type!=='impression'&&f.type!=='memory').slice().reverse();
     let fragsBody=frags.length?frags.map(f=>{
       let inner='';
       if(f.type==='text') inner=`<div class="frag-bubble">${f.content.replace(/\n/g,'<br>')}</div>`;
       else if(f.type==='image'){const full=f.emoji&&f.emoji.startsWith('data:')?f.emoji:f.content;inner=`<div class="frag-img-wrap" onclick="openLightbox('${full}')"><img src="${f.content}" alt="" class="frag-img-thumb"><span class="frag-img-expand">点击查看</span></div>`;}
       else inner=`<div class="frag-bubble feel"><span class="feel-ico">${f.emoji}</span>${f.content?`<span class="feel-txt">${f.content.replace(/\n/g,'<br>')}</span>`:''}`;
-      return `<div class="frag">${inner}<div class="frag-date">${f.date}</div><button class="del-frag" onclick="delMySelfFrag('${f.id}')">✕</button></div>`;
+      return `<div class="frag">${inner}<div class="frag-date">${f.date}<button class="mem-pin-btn" style="margin-left:6px" onclick="pinSelfFragToMemory('${f.id}')" title="加入人物画像">＋</button></div><button class="del-frag" onclick="delMySelfFrag('${f.id}')">✕</button></div>`;
     }).join(''):`<div class="add-first">还没有记录，点击下方按钮开始 🌿</div>`;
     tabContent=`<div style="margin-bottom:12px">${fragsBody}</div>
       <button class="frag-add-btn" onclick="openAddSelfFrag()">＋ 添加记录</button>`;
@@ -2224,13 +2246,15 @@ function renderPerson(){
 
   const allFrags=p.fragments||[];
   const impressions=allFrags.filter(f=>f.type==='impression'); // 聊天顺序：旧→新
-  const frags=allFrags.filter(f=>f.type!=='impression').slice().reverse();
+  const frags=allFrags.filter(f=>f.type!=='impression'&&f.type!=='memory').slice().reverse();
 
   let tabContent='';
 
   if(personTab==='analysis'){
     const meBday=me.birthday||null;
+    const memories=(p.fragments||[]).filter(f=>f.type==='memory');
     tabContent=buildAnalysisHTML(p.birthday, meBday, p.relation, p.gender||'')
+      +buildMemoriesHTML(memories)
       +`<div class="delete-zone"><button class="delete-btn" onclick="askDelete()">🗑 删除此人的档案</button></div>`;
   }
 
@@ -2253,7 +2277,10 @@ function renderPerson(){
           }</div>
           <button class="chat-del-btn" onclick="delImpression('${im.id}')">✕</button>
         </div>
-        <div class="chat-date-row">${im.date}</div>`).join('')
+        <div class="chat-date-row">
+          <button class="mem-pin-btn" onclick="pinToMemory('${im.id}')" title="加入人物画像">＋</button>
+          ${im.date}
+        </div>`).join('')
         :`<div class="chat-empty">写下你对TA的感受<br>Growth Log AI 会帮你解读 🌿</div>`;
 
     tabContent=`
@@ -2277,7 +2304,7 @@ function renderPerson(){
         if(f.type==='text') inner=`<div class="frag-bubble">${f.content.replace(/\n/g,'<br>')}</div>`;
         else if(f.type==='image'){ const full=f.emoji&&f.emoji.startsWith('data:')?f.emoji:f.content; inner=`<div class="frag-img-wrap" onclick="openLightbox('${full}')"><img src="${f.content}" alt="" class="frag-img-thumb"><span class="frag-img-expand">点击查看</span></div>`; }
         else inner=`<div class="frag-bubble feel"><span class="feel-ico">${f.emoji}</span>${f.content?`<span class="feel-txt">${f.content.replace(/\n/g,'<br>')}</span>`:''}`;
-        return `<div class="frag">${inner}<div class="frag-date">${f.date}</div><button class="del-frag" onclick="delFrag('${f.id}')">✕</button></div>`;
+        return `<div class="frag">${inner}<div class="frag-date">${f.date}<button class="mem-pin-btn" style="margin-left:6px" onclick="pinFragToMemory('${f.id}')" title="加入人物画像">＋</button></div><button class="del-frag" onclick="delFrag('${f.id}')">✕</button></div>`;
       }).join('');
     }
     tabContent=`
@@ -2299,6 +2326,72 @@ function renderPerson(){
   // FAB 始终隐藏（用内嵌按钮代替）
   const fab=document.querySelector('#vPerson .fab');
   if(fab) fab.style.display='none';
+}
+
+// ════════════ MEMORIES / 人物画像 ════════════
+function buildMemoriesHTML(memories){
+  if(!memories.length) return '';
+  const items=memories.map(m=>`
+    <div class="memory-item" id="mem-${m.id}">
+      <div class="memory-content">${m.content.replace(/\n/g,'<br>')}</div>
+      <div class="memory-date">${m.date}</div>
+      <button class="memory-del" onclick="delMemory('${m.id}')" title="删除">✕</button>
+    </div>`).join('');
+  return `<div class="memories-section">
+    <div class="memories-header" onclick="toggleMemories(this)">
+      <span class="memories-header-title">🪞 人物画像</span>
+      <span class="mem-count-badge">${memories.length} 条</span>
+      <span class="mem-arrow">▾</span>
+    </div>
+    <div class="memories-body">${items}</div>
+  </div>`;
+}
+function toggleMemories(el){
+  el.querySelector('.mem-arrow').classList.toggle('open');
+  el.nextElementSibling.classList.toggle('open');
+}
+async function _saveMemory(content,isSelf){
+  if(!content.trim()){toast('内容为空');return;}
+  const dateStr=nowStr();
+  const pid=isSelf?await getSelfPersonId():curPerson?.id;
+  if(!pid){toast('保存失败');return;}
+  const{data,error}=await _fragInsert({person_id:pid,user_id:_user.id,type:'memory',content:content.trim(),emoji:'',frag_date:dateStr});
+  if(error||!data){toast('保存失败');return;}
+  const mem={id:data.id,type:'memory',content:content.trim(),emoji:'',date:dateStr};
+  if(isSelf){
+    if(!D.me.selfFragments)D.me.selfFragments=[];
+    D.me.selfFragments.push(mem);
+  } else if(curPerson){
+    if(!curPerson.fragments)curPerson.fragments=[];
+    curPerson.fragments.push(mem);
+  }
+  toast('已加入人物画像 ✦');
+}
+async function pinToMemory(fragId){
+  const frag=curPerson?.fragments?.find(f=>f.id===fragId);
+  if(frag) await _saveMemory(frag.content,false);
+}
+async function pinFragToMemory(fragId){
+  const frag=curPerson?.fragments?.find(f=>f.id===fragId);
+  if(frag) await _saveMemory(frag.content||frag.emoji||'',false);
+}
+async function pinSelfToMemory(fragId){
+  const frag=D.me?.selfFragments?.find(f=>f.id===fragId);
+  if(frag) await _saveMemory(frag.content,true);
+}
+async function pinSelfFragToMemory(fragId){
+  const frag=D.me?.selfFragments?.find(f=>f.id===fragId);
+  if(frag) await _saveMemory(frag.content||frag.emoji||'',true);
+}
+async function delMemory(id){
+  const{error}=await _SB.from('fragments').delete().eq('id',id);
+  if(error){toast('删除失败');return;}
+  if(curPerson) curPerson.fragments=(curPerson.fragments||[]).filter(f=>f.id!==id);
+  if(D.me.selfFragments) D.me.selfFragments=D.me.selfFragments.filter(f=>f.id!==id);
+  // remove DOM node directly to avoid re-render (which would scroll the chat)
+  const el=document.getElementById('mem-'+id);
+  if(el) el.remove();
+  toast('已删除');
 }
 
 function toggleFrags(el){
