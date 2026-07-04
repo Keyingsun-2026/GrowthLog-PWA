@@ -2504,10 +2504,10 @@ async function _doPinSheet(type){
 function _renderFragText(content){
   const SEP='\n⟦AI⟧\n';
   const idx=content.indexOf(SEP);
-  if(idx===-1) return `<div class="frag-bubble">${content.replace(/\n/g,'<br>')}</div>`;
+  if(idx===-1) return `<div class="frag-bubble"><div class="feel-txt">${content.replace(/\n/g,'<br>')}</div></div>`;
   const userPart=content.slice(0,idx);
   const aiPart=content.slice(idx+SEP.length);
-  return `<div class="frag-bubble">${userPart.replace(/\n/g,'<br>')}<div class="frag-ai-box"><div class="frag-ai-label">AI 解读</div>${aiPart.replace(/\n/g,'<br>')}</div></div>`;
+  return `<div class="frag-bubble"><div class="feel-txt">${userPart.replace(/\n/g,'<br>')}</div><div class="frag-ai-box"><div class="frag-ai-label">AI 解读</div>${aiPart.replace(/\n/g,'<br>')}</div></div>`;
 }
 
 // 把聊天气泡里的内容保存为相处碎片（type='text'）
