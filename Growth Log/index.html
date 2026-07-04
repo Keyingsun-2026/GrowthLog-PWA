@@ -1868,7 +1868,9 @@ async function saveMyImpression(){
       name:D.me.name,
       dmName:dmIdx!==null?STEMS[dmIdx]+EL_NAME[ST_ELEM[dmIdx]]:'',
       dmTagline:dmIdx!==null?DM_DATA[dmIdx].tagline:'',
-      dmCore:dmIdx!==null?DM_DATA[dmIdx].core.map(c=>c.t).join('、'):''
+      dmCore:dmIdx!==null?DM_DATA[dmIdx].core.map(c=>`${c.t}：${c.d}`).join('；'):'',
+      dmVibes:dmIdx!==null?DM_DATA[dmIdx].vibes.map(v=>`${v.t}（${v.d}）`).join('；'):'',
+      dmTips:dmIdx!==null?DM_DATA[dmIdx].tips:''
     };
     const history=_buildHistory(D.me.selfFragments, data.id);
     const _dc1=new AbortController(); setTimeout(()=>_dc1.abort(),25000);
@@ -2118,11 +2120,18 @@ async function saveImpression(){
 
   try{
     const dmIdx=curPerson.birthday?calcPillars(curPerson.birthday).day.stem:null;
+    const meDmIdx=D.me.birthday?calcPillars(D.me.birthday).day.stem:null;
     const personInfo={
       name:curPerson.name,relation:curPerson.relation,gender:curPerson.gender||'',
+      // TA 的日主（完整版）
       dmName:dmIdx!==null?STEMS[dmIdx]+EL_NAME[ST_ELEM[dmIdx]]:'',
       dmTagline:dmIdx!==null?DM_DATA[dmIdx].tagline:'',
-      dmCore:dmIdx!==null?DM_DATA[dmIdx].core.map(c=>c.t).join('、'):''
+      dmCore:dmIdx!==null?DM_DATA[dmIdx].core.map(c=>`${c.t}：${c.d}`).join('；'):'',
+      dmVibes:dmIdx!==null?DM_DATA[dmIdx].vibes.map(v=>`${v.t}（${v.d}）`).join('；'):'',
+      dmTips:dmIdx!==null?DM_DATA[dmIdx].tips:'',
+      // 我的日主（用于关系视角对照）
+      myDmName:meDmIdx!==null?STEMS[meDmIdx]+EL_NAME[ST_ELEM[meDmIdx]]:'',
+      myDmTagline:meDmIdx!==null?DM_DATA[meDmIdx].tagline:''
     };
     const history=_buildHistory(curPerson.fragments, data.id);
     const _dc2=new AbortController(); setTimeout(()=>_dc2.abort(),25000);
