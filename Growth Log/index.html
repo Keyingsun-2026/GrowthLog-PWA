@@ -761,11 +761,13 @@ input,textarea{max-width:100%;box-sizing:border-box}
 <!-- ═══ PIN ACTION SHEET ═══ -->
 <div id="pinActionSheet" style="position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:450;display:none;align-items:flex-end" onclick="if(event.target===this)closePinSheet()">
   <div style="width:100%;background:var(--card);border-radius:20px 20px 0 0;padding:14px 16px max(16px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px">
-    <div style="font-size:12px;color:var(--muted);text-align:center;padding-bottom:2px">选择保存内容到相处碎片</div>
-    <button onclick="_doPinSheet('user')" style="padding:13px;border-radius:12px;background:var(--bg);border:none;font-size:15px;cursor:pointer;color:var(--text);touch-action:manipulation">我的话</button>
-    <button onclick="_doPinSheet('ai')" style="padding:13px;border-radius:12px;background:var(--bg);border:none;font-size:15px;cursor:pointer;color:var(--text);touch-action:manipulation">AI 解读</button>
-    <button onclick="_doPinSheet('both')" style="padding:13px;border-radius:12px;background:var(--bg);border:none;font-size:15px;cursor:pointer;color:var(--text);touch-action:manipulation">两者都加</button>
-    <button onclick="closePinSheet()" style="padding:12px;border-radius:12px;background:none;border:none;font-size:15px;cursor:pointer;color:var(--muted);touch-action:manipulation">取消</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:2px">
+      <span style="font-size:12px;color:var(--muted)">选择保存内容到相处碎片</span>
+      <button onclick="closePinSheet()" style="background:none;border:none;font-size:14px;color:var(--muted);cursor:pointer;touch-action:manipulation;padding:2px 4px">取消</button>
+    </div>
+    <button onclick="_doPinSheet('user')" style="padding:13px;border-radius:12px;background:var(--bg);border:none;font-size:15px;cursor:pointer;color:var(--text);touch-action:manipulation;text-align:left">我的话</button>
+    <button onclick="_doPinSheet('ai')" style="padding:13px;border-radius:12px;background:var(--bg);border:none;font-size:15px;cursor:pointer;color:var(--text);touch-action:manipulation;text-align:left">AI 解读</button>
+    <button onclick="_doPinSheet('both')" style="padding:13px;border-radius:12px;background:var(--bg);border:none;font-size:15px;cursor:pointer;color:var(--text);touch-action:manipulation;text-align:left">两者都加</button>
   </div>
 </div>
 
@@ -2469,9 +2471,10 @@ function closePinSheet(){
   _pinSheetCtx=null;
 }
 async function _doPinSheet(type){
+  const ctx=_pinSheetCtx;
   closePinSheet();
-  if(!_pinSheetCtx) return;
-  const{fragId,isSelf}=_pinSheetCtx;
+  if(!ctx) return;
+  const{fragId,isSelf}=ctx;
   const frags=isSelf?D.me.selfFragments:curPerson?.fragments;
   const frag=frags?.find(f=>f.id===fragId);
   if(!frag) return;
