@@ -733,28 +733,34 @@ input,textarea{max-width:100%;box-sizing:border-box}
     <h3>记录一个片段</h3>
     <div class="frag-types">
       <div class="ft-btn sel" data-t="text" onclick="pickFt(this)"><span class="ico">✍️</span><span class="lbl">文字</span></div>
-      <div class="ft-btn" data-t="image" onclick="pickFt(this)"><span class="ico">🖼️</span><span class="lbl">照片</span></div>
-      <div class="ft-btn" data-t="feeling" onclick="pickFt(this)"><span class="ico">💭</span><span class="lbl">感受</span></div>
+      <div class="ft-btn" data-t="media" onclick="pickFt(this)"><span class="ico">📸</span><span class="lbl">照片/视频</span></div>
     </div>
-    <div id="ftText"><textarea class="ft" id="fragTxt" placeholder="写下你们之间的某个瞬间，或发生的事..."></textarea></div>
-    <div id="ftImg" style="display:none">
-      <div class="img-area" onclick="document.getElementById('fFragImg').click()"><span class="ico">📷</span>点击上传照片</div>
-      <div id="imgPrev" style="display:none;margin-top:10px"><img id="imgPrevEl" style="width:100%;border-radius:10px;max-height:200px;object-fit:cover"></div>
-    </div>
-    <div id="ftFeel" style="display:none">
-      <div class="feel-pick" id="feelPick">
-        <div class="feel-opt sel" data-e="😊" onclick="pickFeel(this)">😊</div>
-        <div class="feel-opt" data-e="🥰" onclick="pickFeel(this)">🥰</div>
-        <div class="feel-opt" data-e="😔" onclick="pickFeel(this)">😔</div>
-        <div class="feel-opt" data-e="😤" onclick="pickFeel(this)">😤</div>
-        <div class="feel-opt" data-e="🤔" onclick="pickFeel(this)">🤔</div>
-        <div class="feel-opt" data-e="😌" onclick="pickFeel(this)">😌</div>
-        <div class="feel-opt" data-e="💫" onclick="pickFeel(this)">💫</div>
-        <div class="feel-opt" data-e="🥺" onclick="pickFeel(this)">🥺</div>
-        <div class="feel-opt" data-e="😅" onclick="pickFeel(this)">😅</div>
-        <div class="feel-opt" data-e="🫂" onclick="pickFeel(this)">🫂</div>
+    <!-- 文字面板（含可选心情） -->
+    <div id="ftText">
+      <div style="margin-bottom:8px">
+        <button id="emojiToggleBtn" onclick="toggleEmojiPick()" style="background:var(--bg);border:1.5px solid var(--border);border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;color:var(--muted);touch-action:manipulation">😊 加心情</button>
       </div>
-      <textarea class="ft" id="feelTxt" placeholder="此刻的感受..." style="min-height:70px"></textarea>
+      <div id="emojiPickRow" style="display:none;margin-bottom:10px">
+        <div class="feel-pick" id="feelPick">
+          <div class="feel-opt" data-e="😊" onclick="pickFeel(this)">😊</div>
+          <div class="feel-opt" data-e="🥰" onclick="pickFeel(this)">🥰</div>
+          <div class="feel-opt" data-e="😔" onclick="pickFeel(this)">😔</div>
+          <div class="feel-opt" data-e="😤" onclick="pickFeel(this)">😤</div>
+          <div class="feel-opt" data-e="🤔" onclick="pickFeel(this)">🤔</div>
+          <div class="feel-opt" data-e="😌" onclick="pickFeel(this)">😌</div>
+          <div class="feel-opt" data-e="💫" onclick="pickFeel(this)">💫</div>
+          <div class="feel-opt" data-e="🥺" onclick="pickFeel(this)">🥺</div>
+          <div class="feel-opt" data-e="😅" onclick="pickFeel(this)">😅</div>
+          <div class="feel-opt" data-e="🫂" onclick="pickFeel(this)">🫂</div>
+        </div>
+        <button onclick="clearEmojiPick()" style="background:none;border:none;font-size:12px;color:var(--muted);cursor:pointer;touch-action:manipulation;padding:0">✕ 不加心情</button>
+      </div>
+      <textarea class="ft" id="fragTxt" placeholder="写下你们之间的某个瞬间，或发生的事..."></textarea>
+    </div>
+    <!-- 照片/视频面板 -->
+    <div id="ftMedia" style="display:none">
+      <div class="img-area" onclick="document.getElementById('fFragMedia').click()"><span class="ico">📷</span>点击上传照片或视频</div>
+      <div id="mediaPrev" style="display:none;margin-top:10px"></div>
     </div>
     <button class="sub-btn" onclick="saveFrag()" style="margin-top:12px">记录下来</button>
   </div>
@@ -799,7 +805,7 @@ input,textarea{max-width:100%;box-sizing:border-box}
 <input type="file" id="fMe" accept="image/*" style="display:none" onchange="handlePhoto(event,'me')">
 <input type="file" id="fNew" accept="image/*" style="display:none" onchange="handlePhoto(event,'new')">
 <input type="file" id="fPerson" accept="image/*" style="display:none" onchange="handlePhoto(event,'person')">
-<input type="file" id="fFragImg" accept="image/*" style="display:none" onchange="handleFragImg(event)">
+<input type="file" id="fFragMedia" accept="image/*,video/*" style="display:none" onchange="handleFragMedia(event)">
 
 <div id="updateBanner" class="update-banner"><span>✨ 新版本已就绪，关闭后重新打开</span><button class="update-banner-close" onclick="document.getElementById('updateBanner').classList.remove('show')" aria-label="关闭">✕</button></div>
 
@@ -1681,7 +1687,7 @@ function analyzeImpression(text, dmIdx){
 }
 
 // ════════════ STATE ════════════
-let curPerson=null, fragType='text', fragImg=null, curFeel='😊', personTab='feeling';
+let curPerson=null, fragType='text', fragImg=null, curFeel=null, fragMediaType='image', personTab='feeling';
 let tmpPhoto={me:null,new:null}, editMode=false, fragOpen=false, _selfFragMode=false;
 let profileTab='analysis';
 let selMeGender='女', selNewGender='女';
@@ -1867,9 +1873,10 @@ function renderProfileTab(){
     const frags=(me.selfFragments||[]).filter(f=>f.type!=='impression'&&f.type!=='memory').slice().reverse();
     let fragsBody=frags.length?frags.map(f=>{
       let inner='';
-      if(f.type==='text') inner=_renderFragText(f.content);
+      if(f.type==='text') inner=f.emoji?`<div class="frag-bubble"><span class="feel-ico">${f.emoji}</span>${f.content?`<div class="feel-txt">${f.content.replace(/\n/g,'<br>')}</div>`:''}</div>`:_renderFragText(f.content);
       else if(f.type==='image'){const full=f.emoji&&f.emoji.startsWith('data:')?f.emoji:f.content;inner=`<div class="frag-img-wrap" onclick="openLightbox('${full}')"><img src="${f.content}" alt="" class="frag-img-thumb"><span class="frag-img-expand">点击查看</span></div>`;}
-      else inner=`<div class="frag-bubble feel"><span class="feel-ico">${f.emoji}</span>${f.content?`<span class="feel-txt">${f.content.replace(/\n/g,'<br>')}</span>`:''}`;
+      else if(f.type==='video') inner=`<div class="frag-img-wrap"><video src="${f.content}" style="width:100%;border-radius:8px;max-height:220px" controls playsinline></video></div>`;
+      else inner=`<div class="frag-bubble feel"><span class="feel-ico">${f.emoji}</span>${f.content?`<div class="feel-txt">${f.content.replace(/\n/g,'<br>')}</div>`:''}</div>`;
       return `<div class="frag">${inner}<div class="frag-date">${f.date}</div><button class="del-frag" onclick="delMySelfFrag('${f.id}')">✕</button></div>`;
     }).join(''):`<div class="add-first">还没有记录，点击下方按钮开始 🌿</div>`;
     tabContent=`<div style="margin-bottom:12px">${fragsBody}</div>
@@ -2350,9 +2357,10 @@ function renderPerson(){
     } else {
       fragsBody=frags.map(f=>{
         let inner='';
-        if(f.type==='text') inner=_renderFragText(f.content);
+        if(f.type==='text') inner=f.emoji?`<div class="frag-bubble"><span class="feel-ico">${f.emoji}</span>${f.content?`<div class="feel-txt">${f.content.replace(/\n/g,'<br>')}</div>`:''}</div>`:_renderFragText(f.content);
         else if(f.type==='image'){ const full=f.emoji&&f.emoji.startsWith('data:')?f.emoji:f.content; inner=`<div class="frag-img-wrap" onclick="openLightbox('${full}')"><img src="${f.content}" alt="" class="frag-img-thumb"><span class="frag-img-expand">点击查看</span></div>`; }
-        else inner=`<div class="frag-bubble feel"><span class="feel-ico">${f.emoji}</span>${f.content?`<span class="feel-txt">${f.content.replace(/\n/g,'<br>')}</span>`:''}`;
+        else if(f.type==='video') inner=`<div class="frag-img-wrap"><video src="${f.content}" style="width:100%;border-radius:8px;max-height:220px" controls playsinline></video></div>`;
+        else inner=`<div class="frag-bubble feel"><span class="feel-ico">${f.emoji}</span>${f.content?`<div class="feel-txt">${f.content.replace(/\n/g,'<br>')}</div>`:''}`;
         return `<div class="frag">${inner}<div class="frag-date">${f.date}</div><button class="del-frag" onclick="delFrag('${f.id}')">✕</button></div>`;
       }).join('');
     }
@@ -2687,62 +2695,95 @@ async function savePerson(){
 
 // ════════════ ADD FRAGMENT ════════════
 function openAddFrag(){
-  fragType='text'; fragImg=null; curFeel='😊';
+  fragType='text'; fragImg=null; curFeel=null; fragMediaType='image';
   document.getElementById('fragTxt').value='';
-  document.getElementById('feelTxt').value='';
-  document.getElementById('imgPrev').style.display='none';
+  document.getElementById('mediaPrev').style.display='none';
+  document.getElementById('mediaPrev').innerHTML='';
   document.querySelectorAll('.ft-btn').forEach(b=>b.classList.toggle('sel',b.dataset.t==='text'));
   document.getElementById('ftText').style.display='block';
-  document.getElementById('ftImg').style.display='none';
-  document.getElementById('ftFeel').style.display='none';
-  document.querySelectorAll('.feel-opt').forEach(o=>o.classList.toggle('sel',o.dataset.e==='😊'));
+  document.getElementById('ftMedia').style.display='none';
+  document.getElementById('emojiPickRow').style.display='none';
+  document.getElementById('emojiToggleBtn').textContent='😊 加心情';
+  document.querySelectorAll('.feel-opt').forEach(o=>o.classList.remove('sel'));
   document.getElementById('mFrag').classList.add('open');
 }
 function pickFt(el){
   document.querySelectorAll('.ft-btn').forEach(b=>b.classList.remove('sel'));
   el.classList.add('sel'); fragType=el.dataset.t;
   document.getElementById('ftText').style.display=fragType==='text'?'block':'none';
-  document.getElementById('ftImg').style.display=fragType==='image'?'block':'none';
-  document.getElementById('ftFeel').style.display=fragType==='feeling'?'block':'none';
+  document.getElementById('ftMedia').style.display=fragType==='media'?'block':'none';
+}
+function toggleEmojiPick(){
+  const row=document.getElementById('emojiPickRow');
+  const open=row.style.display==='none';
+  row.style.display=open?'block':'none';
+  if(!open){clearEmojiPick();}
+}
+function clearEmojiPick(){
+  curFeel=null;
+  document.querySelectorAll('.feel-opt').forEach(o=>o.classList.remove('sel'));
+  document.getElementById('emojiPickRow').style.display='none';
+  document.getElementById('emojiToggleBtn').textContent='😊 加心情';
 }
 function pickFeel(el){
   document.querySelectorAll('.feel-opt').forEach(o=>o.classList.remove('sel'));
   el.classList.add('sel'); curFeel=el.dataset.e;
+  document.getElementById('emojiToggleBtn').textContent=curFeel+' 心情已选';
 }
-function handleFragImg(e){
+function handleFragMedia(e){
   const file=e.target.files[0]; if(!file) return;
+  if(file.size>30*1024*1024){toast('文件过大，请选择30MB以内');e.target.value='';return;}
+  fragMediaType=file.type.startsWith('video/')?'video':'image';
   const r=new FileReader();
-  r.onload=ev=>{ fragImg=ev.target.result; document.getElementById('imgPrev').style.display='block'; document.getElementById('imgPrevEl').src=fragImg; };
+  r.onload=ev=>{
+    fragImg=ev.target.result;
+    const prev=document.getElementById('mediaPrev');
+    prev.style.display='block';
+    if(fragMediaType==='video'){
+      prev.innerHTML=`<video src="${fragImg}" style="width:100%;border-radius:10px;max-height:220px" controls playsinline></video>`;
+    } else {
+      prev.innerHTML=`<img src="${fragImg}" style="width:100%;border-radius:10px;max-height:200px;object-fit:cover">`;
+    }
+  };
   r.readAsDataURL(file); e.target.value='';
 }
 async function saveFrag(){
   if(!_selfFragMode && !curPerson) return;
-  let content='',emoji=null;
-  if(fragType==='text'){content=document.getElementById('fragTxt').value.trim();if(!content){toast('请写点什么');return;}}
-  else if(fragType==='image'){
-    if(!fragImg){toast('请选择图片');return;}
-    toast('处理中...');
-    content=await compressImage(fragImg,120,0.5);
-    emoji=await compressImage(fragImg,700,0.82);
+  let content='',emoji=null,saveType=fragType;
+  if(fragType==='text'){
+    content=document.getElementById('fragTxt').value.trim();
+    if(!content){toast('请写点什么');return;}
+    emoji=curFeel||null;
+  } else {
+    // media
+    if(!fragImg){toast('请选择照片或视频');return;}
+    saveType=fragMediaType; // 'image' or 'video'
+    if(fragMediaType==='image'){
+      toast('处理中...');
+      content=await compressImage(fragImg,120,0.5);
+      emoji=await compressImage(fragImg,700,0.82);
+    } else {
+      // video: store as-is (no compression)
+      content=fragImg; emoji='';
+    }
   }
-  else{emoji=curFeel;content=document.getElementById('feelTxt').value.trim();}
   const dateStr=nowStr();
   const personId=_selfFragMode?(await getSelfPersonId()):curPerson.id;
   if(!personId){_selfFragMode=false;toast('保存失败，请重试');return;}
   const{data,error}=await _fragInsert({
     person_id:personId,user_id:_user.id,
-    type:fragType,content,emoji,frag_date:dateStr
+    type:saveType,content,emoji,frag_date:dateStr
   });
   if(error||!data){_selfFragMode=false;toast('保存失败');return;}
   if(_selfFragMode){
     if(!D.me.selfFragments) D.me.selfFragments=[];
-    D.me.selfFragments.push({id:data.id,type:fragType,content,emoji:emoji||'',date:dateStr});
+    D.me.selfFragments.push({id:data.id,type:saveType,content,emoji:emoji||'',date:dateStr});
     _selfFragMode=false;
     document.getElementById('mFrag').classList.remove('open');
     renderProfileTab(); toast('已记录 ✦');
   } else {
     if(!curPerson.fragments) curPerson.fragments=[];
-    curPerson.fragments.push({id:data.id,type:fragType,content,emoji:emoji||'',date:dateStr});
+    curPerson.fragments.push({id:data.id,type:saveType,content,emoji:emoji||'',date:dateStr});
     document.getElementById('mFrag').classList.remove('open');
     fragOpen=true; renderPerson(); toast('已记录 ✦');
   }
