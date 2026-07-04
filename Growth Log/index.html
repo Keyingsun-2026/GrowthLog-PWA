@@ -1777,7 +1777,7 @@ function renderProfileTab(){
       ${me.gender?`<span class="gender-badge" style="font-size:12px">${me.gender==='女'?'👩 女':'👨 男'}</span>`:''}
     </div>`;
 
-  const tabBar=`<div style="padding:0 4px;margin-top:${isCompact?'4px':'14px'};margin-bottom:2px"><div class="person-tab-bar" style="margin:0">
+  const tabBar=`<div style="padding:0 4px;margin-top:4px;margin-bottom:2px;flex-shrink:0"><div class="person-tab-bar" style="margin:0">
     <div class="person-tab ${profileTab==='analysis'?'active':''}" onclick="switchProfileTab('analysis')">日主分析</div>
     <div class="person-tab ${profileTab==='feeling'?'active':''}" onclick="switchProfileTab('feeling')">我感觉我</div>
     <div class="person-tab ${profileTab==='frags'?'active':''}" onclick="switchProfileTab('frags')">相处碎片</div>
@@ -1837,7 +1837,7 @@ function renderProfileTab(){
 
   // 先切 chat-mode class，让浏览器确定 flex 布局，再写内容
   document.getElementById('tabProfile').classList.toggle('chat-mode',isChat);
-  el.innerHTML=heroHTML+tabBar+(isChat
+  el.innerHTML=tabBar+heroHTML+(isChat
     ?`<div class="chat-tab-content">${tabContent}</div>`
     :`<div style="padding:0 15px 90px;margin-top:12px">${tabContent}</div>`);
   if(isChat){
