@@ -149,6 +149,8 @@ button,.nav-tab,.p-card,.circle-card,.my-card,.rel-opt,.family-sub-opt,.pin-key,
 .frag-bubble{background:var(--card);border-radius:10px 10px 10px 3px;padding:12px 15px;border:1.5px solid var(--border);font-size:13px;line-height:1.75;color:var(--text)}
 .frag-bubble.feel{background:var(--accent-lt);border-color:transparent}
 .frag-bubble img{width:100%;border-radius:8px;display:block}
+.frag-ai-box{background:var(--accent-lt);border-radius:8px;padding:10px 12px;margin-top:10px;border-left:3px solid var(--accent)}
+.frag-ai-label{font-size:10px;color:var(--accent);font-weight:700;margin-bottom:4px;letter-spacing:.5px}
 .frag-date{font-size:10px;color:var(--muted);margin-top:4px;padding-left:3px}
 .feel-ico{font-size:21px;margin-bottom:4px;display:block}
 .feel-txt{font-size:13px;color:var(--accent)}
@@ -1865,7 +1867,7 @@ function renderProfileTab(){
     const frags=(me.selfFragments||[]).filter(f=>f.type!=='impression'&&f.type!=='memory').slice().reverse();
     let fragsBody=frags.length?frags.map(f=>{
       let inner='';
-      if(f.type==='text') inner=`<div class="frag-bubble">${f.content.replace(/\n/g,'<br>')}</div>`;
+      if(f.type==='text') inner=_renderFragText(f.content);
       else if(f.type==='image'){const full=f.emoji&&f.emoji.startsWith('data:')?f.emoji:f.content;inner=`<div class="frag-img-wrap" onclick="openLightbox('${full}')"><img src="${f.content}" alt="" class="frag-img-thumb"><span class="frag-img-expand">点击查看</span></div>`;}
       else inner=`<div class="frag-bubble feel"><span class="feel-ico">${f.emoji}</span>${f.content?`<span class="feel-txt">${f.content.replace(/\n/g,'<br>')}</span>`:''}`;
       return `<div class="frag">${inner}<div class="frag-date">${f.date}</div><button class="del-frag" onclick="delMySelfFrag('${f.id}')">✕</button></div>`;
@@ -2348,7 +2350,7 @@ function renderPerson(){
     } else {
       fragsBody=frags.map(f=>{
         let inner='';
-        if(f.type==='text') inner=`<div class="frag-bubble">${f.content.replace(/\n/g,'<br>')}</div>`;
+        if(f.type==='text') inner=_renderFragText(f.content);
         else if(f.type==='image'){ const full=f.emoji&&f.emoji.startsWith('data:')?f.emoji:f.content; inner=`<div class="frag-img-wrap" onclick="openLightbox('${full}')"><img src="${f.content}" alt="" class="frag-img-thumb"><span class="frag-img-expand">点击查看</span></div>`; }
         else inner=`<div class="frag-bubble feel"><span class="feel-ico">${f.emoji}</span>${f.content?`<span class="feel-txt">${f.content.replace(/\n/g,'<br>')}</span>`:''}`;
         return `<div class="frag">${inner}<div class="frag-date">${f.date}</div><button class="del-frag" onclick="delFrag('${f.id}')">✕</button></div>`;
@@ -2480,8 +2482,24 @@ async function _doPinSheet(type){
   if(!frag) return;
   const userContent=frag.content||'';
   const aiContent=(frag.emoji&&frag.emoji!=='__loading__')?frag.emoji:'';
-  if((type==='user'||type==='both')&&userContent) await _pinToFrag(userContent,isSelf);
-  if((type==='ai'||type==='both')&&aiContent) await _pinToFrag(aiContent,isSelf);
+  if(type==='user'&&userContent) await _pinToFrag(userContent,isSelf);
+  else if(type==='ai'&&aiContent) await _pinToFrag(aiContent,isSelf);
+  else if(type==='both'){
+    if(userContent&&aiContent) await _pinToFrag(userContent+'\n⟦AI⟧\n'+aiContent,isSelf);
+    else if(userContent) await _pinToFrag(userContent,isSelf);
+    else if(aiContent) await _pinToFrag(aiContent,isSelf);
+    else toast('内容为空');
+  }
+}
+
+// 渲染 text 碎片（支持用户话＋AI解读合并格式，分隔符 ⟦AI⟧）
+function _renderFragText(content){
+  const SEP='\n⟦AI⟧\n';
+  const idx=content.indexOf(SEP);
+  if(idx===-1) return `<div class="frag-bubble">${content.replace(/\n/g,'<br>')}</div>`;
+  const userPart=content.slice(0,idx);
+  const aiPart=content.slice(idx+SEP.length);
+  return `<div class="frag-bubble">${userPart.replace(/\n/g,'<br>')}<div class="frag-ai-box"><div class="frag-ai-label">AI 解读</div>${aiPart.replace(/\n/g,'<br>')}</div></div>`;
 }
 
 // 把聊天气泡里的内容保存为相处碎片（type='text'）
