@@ -408,6 +408,11 @@ input,textarea{max-width:100%;box-sizing:border-box}
 .ai-bubble{background:var(--card);color:var(--text);border-radius:16px 16px 16px 4px;border:1px solid var(--border)}
 .chat-date-row{display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;color:var(--muted);margin:2px 0 10px}
 .chat-del-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;padding:2px 4px;flex-shrink:0;align-self:flex-start;margin-top:2px;opacity:.5;touch-action:manipulation}
+/* 搜索 */
+.chat-search-btn{background:none;border:none;cursor:pointer;font-size:15px;flex-shrink:0;touch-action:manipulation;padding:2px 4px;color:var(--muted);margin-left:auto}
+.chat-search-bar{display:none;padding:0 0 6px;flex-shrink:0}
+.chat-search-bar.open{display:block}
+.chat-search-input{width:100%;border:1.5px solid var(--border);border-radius:20px;padding:7px 14px;font-size:13px;background:var(--card);color:var(--text);outline:none;font-family:inherit}
 /* Memory pin button */
 .mem-pin-btn{background:none;border:1px solid var(--border);border-radius:50%;width:18px;height:18px;font-size:12px;line-height:1;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;touch-action:manipulation}
 .mem-pin-btn:active{background:var(--accent-lt);color:var(--accent);border-color:var(--accent)}
@@ -750,6 +755,17 @@ input,textarea{max-width:100%;box-sizing:border-box}
       <textarea class="ft" id="feelTxt" placeholder="此刻的感受..." style="min-height:70px"></textarea>
     </div>
     <button class="sub-btn" onclick="saveFrag()" style="margin-top:12px">记录下来</button>
+  </div>
+</div>
+
+<!-- ═══ PIN ACTION SHEET ═══ -->
+<div id="pinActionSheet" style="position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:450;display:none;align-items:flex-end" onclick="if(event.target===this)closePinSheet()">
+  <div style="width:100%;background:var(--card);border-radius:20px 20px 0 0;padding:14px 16px max(16px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px">
+    <div style="font-size:12px;color:var(--muted);text-align:center;padding-bottom:2px">选择保存内容到相处碎片</div>
+    <button onclick="_doPinSheet('user')" style="padding:13px;border-radius:12px;background:var(--bg);border:none;font-size:15px;cursor:pointer;color:var(--text);touch-action:manipulation">我的话</button>
+    <button onclick="_doPinSheet('ai')" style="padding:13px;border-radius:12px;background:var(--bg);border:none;font-size:15px;cursor:pointer;color:var(--text);touch-action:manipulation">AI 解读</button>
+    <button onclick="_doPinSheet('both')" style="padding:13px;border-radius:12px;background:var(--bg);border:none;font-size:15px;cursor:pointer;color:var(--text);touch-action:manipulation">两者都加</button>
+    <button onclick="closePinSheet()" style="padding:12px;border-radius:12px;background:none;border:none;font-size:15px;cursor:pointer;color:var(--muted);touch-action:manipulation">取消</button>
   </div>
 </div>
 
@@ -1778,6 +1794,7 @@ function renderProfileTab(){
     ?`<div class="chat-person-bar">
         <div class="mini-ava">${miniPhotoH}</div>
         <div class="chat-person-name">${me.name||'我'}</div>
+        ${isChat?`<button class="chat-search-btn" onclick="toggleChatSearch()" title="搜索">🔍</button>`:''}
       </div>`
     :`<div style="text-align:center;padding:28px 20px 16px">
       <div class="ph-photo" style="margin:0 auto 14px" onclick="openMyProfile()">
@@ -1810,11 +1827,11 @@ function renderProfileTab(){
       ?`<div class="chat-empty" style="color:var(--muted);font-size:13px">加载中...</div>`
       :impressions.length
         ?impressions.map(im=>`
-        <div class="chat-row user-row">
+        <div class="chat-row user-row" id="ur-${im.id}">
           <div class="chat-ava">${meAvaH}</div>
           <div class="chat-bubble user-bubble">${im.content.replace(/\n/g,'<br>')}</div>
         </div>
-        <div class="chat-row">
+        <div class="chat-row" id="ar-${im.id}">
           <div class="chat-ava ai-ava">🌿</div>
           <div class="chat-bubble ai-bubble" id="impr-resp-${im.id}">${
             im.emoji==='__loading__'
@@ -1823,13 +1840,16 @@ function renderProfileTab(){
           }</div>
           <button class="chat-del-btn" onclick="delMyImpression('${im.id}')">✕</button>
         </div>
-        <div class="chat-date-row">
-          <button class="mem-pin-btn" onclick="pinSelfToMemory('${im.id}')" title="加入人物画像">＋</button>
+        <div class="chat-date-row" id="dr-${im.id}">
+          <button class="mem-pin-btn" onclick="showPinSheet('${im.id}',true)" title="保存到相处碎片">＋</button>
           ${im.date}
         </div>`).join('')
         :`<div class="chat-empty">写下你对自己的感受或观察<br>Growth Log AI 会帮你解读 🌿</div>`;
     tabContent=`
       <div class="chat-wrap">
+        <div class="chat-search-bar" id="chatSearchBar">
+          <input class="chat-search-input" id="chatSearchInput" type="search" placeholder="搜索消息或日期，如 6.17..." oninput="filterChat(this.value)">
+        </div>
         <div class="chat-messages" id="chatMessages">${bubbles}</div>
         <div class="chat-input-bar">
           <textarea class="chat-input" id="selfImprTxt" placeholder="说说你最近的感受..." rows="2"></textarea>
@@ -2245,6 +2265,7 @@ function renderPerson(){
         <div class="mini-ava" style="${!p.photo?`background:${defaultAvaBg(p.relation,cf)}`:''}">${miniPhotoH}</div>
         <div class="chat-person-name">${p.name||'未命名'}</div>
         <span class="rel-tag ${relCls(p.relation,cf)}">${p.relation}</span>
+        ${personTab==='feeling'?`<button class="chat-search-btn" onclick="toggleChatSearch()" title="搜索">🔍</button>`:''}
       </div>`
     :`<div class="p-hero">
       <div class="ph-photo" onclick="document.getElementById('fPerson').click()" style="${!p.photo?`background:${defaultAvaBg(p.relation,cf)}`:''}">
@@ -2279,11 +2300,11 @@ function renderPerson(){
       ?`<div class="chat-empty" style="color:var(--muted);font-size:13px">加载中...</div>`
       :impressions.length
         ?impressions.map(im=>`
-        <div class="chat-row user-row">
+        <div class="chat-row user-row" id="ur-${im.id}">
           <div class="chat-ava">${meAvaH}</div>
           <div class="chat-bubble user-bubble">${im.content.replace(/\n/g,'<br>')}</div>
         </div>
-        <div class="chat-row">
+        <div class="chat-row" id="ar-${im.id}">
           <div class="chat-ava ai-ava">🌿</div>
           <div class="chat-bubble ai-bubble" id="impr-resp-${im.id}">${
             im.emoji==='__loading__'
@@ -2292,14 +2313,17 @@ function renderPerson(){
           }</div>
           <button class="chat-del-btn" onclick="delImpression('${im.id}')">✕</button>
         </div>
-        <div class="chat-date-row">
-          <button class="mem-pin-btn" onclick="pinToMemory('${im.id}')" title="加入人物画像">＋</button>
+        <div class="chat-date-row" id="dr-${im.id}">
+          <button class="mem-pin-btn" onclick="showPinSheet('${im.id}',false)" title="保存到相处碎片">＋</button>
           ${im.date}
         </div>`).join('')
         :`<div class="chat-empty">写下你对TA的感受<br>Growth Log AI 会帮你解读 🌿</div>`;
 
     tabContent=`
       <div class="chat-wrap">
+        <div class="chat-search-bar" id="chatSearchBar">
+          <input class="chat-search-input" id="chatSearchInput" type="search" placeholder="搜索消息或日期，如 6.17..." oninput="filterChat(this.value)">
+        </div>
         <div class="chat-messages" id="chatMessages">${bubbles}</div>
         <div class="chat-input-bar">
           <textarea class="chat-input" id="impressionTxt" placeholder="说说你的感受..." rows="2"></textarea>
@@ -2361,6 +2385,32 @@ function buildMemoriesHTML(memories){
     <div class="memories-body">${items}</div>
   </div>`;
 }
+// ════════════ CHAT SEARCH ════════════
+function toggleChatSearch(){
+  const bar=document.getElementById('chatSearchBar');
+  if(!bar) return;
+  const open=bar.classList.toggle('open');
+  if(open){ setTimeout(()=>document.getElementById('chatSearchInput')?.focus(),100); }
+  else { filterChat(''); const inp=document.getElementById('chatSearchInput'); if(inp)inp.value=''; }
+}
+function filterChat(query){
+  const q=query.trim().toLowerCase();
+  const chatMsgs=document.getElementById('chatMessages');
+  if(!chatMsgs) return;
+  chatMsgs.querySelectorAll('[id^="ur-"]').forEach(row=>{
+    const id=row.id.slice(3);
+    const bubble=row.querySelector('.user-bubble');
+    const dateEl=document.getElementById('dr-'+id);
+    const matches=!q
+      ||(bubble&&bubble.textContent.toLowerCase().includes(q))
+      ||(dateEl&&dateEl.textContent.toLowerCase().includes(q));
+    ['ur-','ar-','dr-'].forEach(pre=>{
+      const el=document.getElementById(pre+id);
+      if(el) el.style.display=matches?'':'none';
+    });
+  });
+}
+
 function toggleMemories(el){
   el.querySelector('.mem-arrow').classList.toggle('open');
   el.nextElementSibling.classList.toggle('open');
@@ -2402,6 +2452,29 @@ async function delMemoryOverlay(id,isSelf){
   _updateMemPillCount(isSelf);
   toast('已删除');
 }
+// ════════════ PIN ACTION SHEET ════════════
+let _pinSheetCtx=null;
+function showPinSheet(fragId,isSelf){
+  _pinSheetCtx={fragId,isSelf};
+  document.getElementById('pinActionSheet').style.display='flex';
+}
+function closePinSheet(){
+  document.getElementById('pinActionSheet').style.display='none';
+  _pinSheetCtx=null;
+}
+async function _doPinSheet(type){
+  closePinSheet();
+  if(!_pinSheetCtx) return;
+  const{fragId,isSelf}=_pinSheetCtx;
+  const frags=isSelf?D.me.selfFragments:curPerson?.fragments;
+  const frag=frags?.find(f=>f.id===fragId);
+  if(!frag) return;
+  const userContent=frag.content||'';
+  const aiContent=(frag.emoji&&frag.emoji!=='__loading__')?frag.emoji:'';
+  if((type==='user'||type==='both')&&userContent) await _pinToFrag(userContent,isSelf);
+  if((type==='ai'||type==='both')&&aiContent) await _pinToFrag(aiContent,isSelf);
+}
+
 // 把聊天气泡里的内容保存为相处碎片（type='text'）
 async function _pinToFrag(content,isSelf){
   if(!content.trim()){toast('内容为空');return;}
