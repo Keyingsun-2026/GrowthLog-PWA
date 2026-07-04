@@ -1772,7 +1772,7 @@ function renderProfileTab(){
   const photoH=me.photo?`<img src="${me.photo}" alt="">`:meInitial;
   const miniPhotoH=me.photo?`<img src="${me.photo}" alt="">`:(me.name?`<span style="font-size:14px;font-weight:700;color:var(--accent)">${me.name.charAt(0)}</span>`:`<span style="font-size:14px;color:var(--muted)">·</span>`);
   const selfMems=(me.selfFragments||[]).filter(f=>f.type==='memory');
-  const memPill=`<button onclick="openMemoriesOverlay(true)" style="background:var(--card);border:1.5px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--text);display:inline-flex;align-items:center;gap:4px;touch-action:manipulation">🪞 人物画像${selfMems.length?` ${selfMems.length}条`:''}</button>`;
+  const memPill=`<button id="memHeroPill" onclick="openMemoriesOverlay(true)" style="background:var(--card);border:1.5px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--text);display:inline-flex;align-items:center;gap:4px;touch-action:manipulation">🪞 人物画像${selfMems.length?` ${selfMems.length}条`:''}</button>`;
 
   const heroHTML=isCompact
     ?`<div class="chat-person-bar">
@@ -2255,7 +2255,7 @@ function renderPerson(){
       <div style="margin-top:6px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap">
         <span class="rel-tag ${relCls(p.relation,cf)}">${p.relation}</span>
         ${p.gender?`<span class="gender-badge">${p.gender==='女'?'👩 女':'👨 男'}</span>`:''}
-        <button onclick="openMemoriesOverlay(false)" style="background:var(--card);border:1.5px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--text);display:inline-flex;align-items:center;gap:4px;touch-action:manipulation">🪞 人物画像${(p.fragments||[]).filter(f=>f.type==='memory').length?' '+(p.fragments||[]).filter(f=>f.type==='memory').length+'条':''}</button>
+        <button id="memHeroPill" onclick="openMemoriesOverlay(false)" style="background:var(--card);border:1.5px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--text);display:inline-flex;align-items:center;gap:4px;touch-action:manipulation">🪞 人物画像${(p.fragments||[]).filter(f=>f.type==='memory').length?' '+(p.fragments||[]).filter(f=>f.type==='memory').length+'条':''}</button>
       </div>
     </div>`;
 
@@ -2384,6 +2384,14 @@ function openMemoriesOverlay(isSelf){
 function closeMemoriesOverlay(){
   document.getElementById('memoriesOverlay').style.transform='translateX(100%)';
 }
+function _updateMemPillCount(isSelf){
+  const pill=document.getElementById('memHeroPill');
+  if(!pill) return;
+  const count=isSelf
+    ?(D.me.selfFragments||[]).filter(f=>f.type==='memory').length
+    :(curPerson?.fragments||[]).filter(f=>f.type==='memory').length;
+  pill.textContent=`🪞 人物画像${count?' '+count+'条':''}`;
+}
 async function delMemoryOverlay(id,isSelf){
   const{error}=await _SB.from('fragments').delete().eq('id',id);
   if(error){toast('删除失败');return;}
@@ -2391,6 +2399,7 @@ async function delMemoryOverlay(id,isSelf){
   if(!isSelf&&curPerson?.fragments) curPerson.fragments=curPerson.fragments.filter(f=>f.id!==id);
   document.getElementById('mov-'+id)?.remove();
   document.getElementById('mem-'+id)?.remove();
+  _updateMemPillCount(isSelf);
   toast('已删除');
 }
 async function _saveMemory(content,isSelf){
@@ -2408,6 +2417,7 @@ async function _saveMemory(content,isSelf){
     if(!curPerson.fragments)curPerson.fragments=[];
     curPerson.fragments.push(mem);
   }
+  _updateMemPillCount(isSelf);
   toast('已加入人物画像 ✦');
 }
 async function pinToMemory(fragId){
@@ -2429,11 +2439,11 @@ async function pinSelfFragToMemory(fragId){
 async function delMemory(id){
   const{error}=await _SB.from('fragments').delete().eq('id',id);
   if(error){toast('删除失败');return;}
+  const isSelf=!curPerson||D.me.selfFragments?.some(f=>f.id===id);
   if(curPerson) curPerson.fragments=(curPerson.fragments||[]).filter(f=>f.id!==id);
   if(D.me.selfFragments) D.me.selfFragments=D.me.selfFragments.filter(f=>f.id!==id);
-  // remove DOM node directly to avoid re-render (which would scroll the chat)
-  const el=document.getElementById('mem-'+id);
-  if(el) el.remove();
+  document.getElementById('mem-'+id)?.remove();
+  _updateMemPillCount(isSelf);
   toast('已删除');
 }
 
