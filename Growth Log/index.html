@@ -1773,8 +1773,10 @@ function renderProfileTab(){
   } else if(profileTab==='feeling'){
     const impressions=(me.selfFragments||[]).filter(f=>f.type==='impression'); // 聊天顺序：旧→新
     const meAvaH=me.photo?`<img src="${me.photo}">`:(me.name?me.name.charAt(0):'我');
-    const bubbles=impressions.length
-      ?impressions.map(im=>`
+    const bubbles=!me._selfFragsLoaded
+      ?`<div class="chat-empty" style="color:var(--muted);font-size:13px">加载中...</div>`
+      :impressions.length
+        ?impressions.map(im=>`
         <div class="chat-row user-row">
           <div class="chat-ava">${meAvaH}</div>
           <div class="chat-bubble user-bubble">${im.content.replace(/\n/g,'<br>')}</div>
@@ -1789,7 +1791,7 @@ function renderProfileTab(){
           <button class="chat-del-btn" onclick="delMyImpression('${im.id}')">✕</button>
         </div>
         <div class="chat-date-row">${im.date}</div>`).join('')
-      :`<div class="chat-empty">写下你对自己的感受或观察<br>Growth Log AI 会帮你解读 🌿</div>`;
+        :`<div class="chat-empty">写下你对自己的感受或观察<br>Growth Log AI 会帮你解读 🌿</div>`;
     tabContent=`
       <div class="chat-wrap">
         <div class="chat-messages" id="chatMessages">${bubbles}</div>
@@ -1816,7 +1818,10 @@ function renderProfileTab(){
     ?`<div class="chat-tab-content">${tabContent}</div>`
     :`<div style="padding:0 15px 90px;margin-top:12px">${tabContent}</div>`);
   if(isChat){
-    setTimeout(()=>{const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight;},150);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      const m=document.getElementById('chatMessages');
+      if(m) m.scrollTop=m.scrollHeight;
+    }));
   }
 }
 
@@ -2116,7 +2121,7 @@ async function saveImpression(){
   document.getElementById('impressionTxt').value='';
   renderPerson();
   // 滚到底部（renderPerson 内也会触发，此处保险再触发一次）
-  setTimeout(()=>{const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight;},200);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight;}));
 
   try{
     const dmIdx=curPerson.birthday?calcPillars(curPerson.birthday).day.stem:null;
@@ -2232,8 +2237,10 @@ function renderPerson(){
 
   else if(personTab==='feeling'){
     const meAvaH=D.me.photo?`<img src="${D.me.photo}">`:(D.me.name?D.me.name.charAt(0):'我');
-    const bubbles=impressions.length
-      ?impressions.map(im=>`
+    const bubbles=!curPerson._fragmentsLoaded
+      ?`<div class="chat-empty" style="color:var(--muted);font-size:13px">加载中...</div>`
+      :impressions.length
+        ?impressions.map(im=>`
         <div class="chat-row user-row">
           <div class="chat-ava">${meAvaH}</div>
           <div class="chat-bubble user-bubble">${im.content.replace(/\n/g,'<br>')}</div>
@@ -2248,7 +2255,7 @@ function renderPerson(){
           <button class="chat-del-btn" onclick="delImpression('${im.id}')">✕</button>
         </div>
         <div class="chat-date-row">${im.date}</div>`).join('')
-      :`<div class="chat-empty">写下你对TA的感受<br>Growth Log AI 会帮你解读 🌿</div>`;
+        :`<div class="chat-empty">写下你对TA的感受<br>Growth Log AI 会帮你解读 🌿</div>`;
 
     tabContent=`
       <div class="chat-wrap">
@@ -2284,7 +2291,11 @@ function renderPerson(){
   // Toggle chat-mode: lock outer scroll, let inner chat-messages scroll
   document.getElementById('vPerson').classList.toggle('chat-mode',personTab==='feeling');
   if(personTab==='feeling'){
-    setTimeout(()=>{const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight;},150);
+    // 双 RAF：确保 DOM paint 完成后再滚动，避免 iOS 上 150ms 不够的问题
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      const m=document.getElementById('chatMessages');
+      if(m) m.scrollTop=m.scrollHeight;
+    }));
   }
 
   // FAB 始终隐藏（用内嵌按钮代替）
