@@ -58,6 +58,14 @@ serve(async (req) => {
 - 记住对话上下文，前后保持连贯`
     }
 
+    // 在对话历史最前面注入一条 assistant 锚定消息，
+    // 避免模型受历史对话惯性影响而否认自己知道日主信息
+    const anchorMsg = personInfo.dmName
+      ? { role: 'assistant', content: isSelf
+          ? `我已经看到你的日主档案：你是${personInfo.dmName}——${personInfo.dmTagline}。有什么想聊的？`
+          : `我已经看到${personInfo.name}的日主档案：${personInfo.dmName}——${personInfo.dmTagline}。有什么想聊的？` }
+      : null
+
     const response = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: {
@@ -68,6 +76,7 @@ serve(async (req) => {
         model: 'deepseek-chat',
         messages: [
           { role: 'system', content: systemPrompt },
+          ...(anchorMsg ? [anchorMsg] : []),
           ...messages
         ],
         max_tokens: 400,
