@@ -753,6 +753,15 @@ input,textarea{max-width:100%;box-sizing:border-box}
   </div>
 </div>
 
+<!-- ═══ MEMORIES OVERLAY ═══ -->
+<div id="memoriesOverlay" style="position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .32s cubic-bezier(.4,0,.2,1)">
+  <div class="v-hdr">
+    <button class="back" onclick="closeMemoriesOverlay()">←</button>
+    <div class="v-title" id="memoriesOverlayTitle">人物画像</div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:16px 18px 60px" id="memoriesOverlayBody"></div>
+</div>
+
 <!-- ═══ CONFIRM DELETE ═══ -->
 <div class="confirm-overlay" id="confirmDel" onclick="if(event.target===this)closeConfirm()">
   <div class="confirm-box">
@@ -1762,6 +1771,8 @@ function renderProfileTab(){
   const meInitial=me.name?`<span style="font-size:32px;font-weight:800;color:var(--accent)">${me.name.charAt(0)}</span>`:'<span style="font-size:28px;color:var(--muted)">·</span>';
   const photoH=me.photo?`<img src="${me.photo}" alt="">`:meInitial;
   const miniPhotoH=me.photo?`<img src="${me.photo}" alt="">`:(me.name?`<span style="font-size:14px;font-weight:700;color:var(--accent)">${me.name.charAt(0)}</span>`:`<span style="font-size:14px;color:var(--muted)">·</span>`);
+  const selfMems=(me.selfFragments||[]).filter(f=>f.type==='memory');
+  const memPill=`<button onclick="openMemoriesOverlay(true)" style="background:var(--card);border:1.5px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--text);display:inline-flex;align-items:center;gap:4px;touch-action:manipulation">🪞 人物画像${selfMems.length?` ${selfMems.length}条`:''}</button>`;
 
   const heroHTML=isCompact
     ?`<div class="chat-person-bar">
@@ -1774,7 +1785,10 @@ function renderProfileTab(){
       </div>
       <div style="font-size:22px;font-weight:700;margin-bottom:3px">${me.name||''}</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${me.birthday?fmtDate(me.birthday):''}</div>
-      ${me.gender?`<span class="gender-badge" style="font-size:12px">${me.gender==='女'?'👩 女':'👨 男'}</span>`:''}
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap">
+        ${me.gender?`<span class="gender-badge" style="font-size:12px">${me.gender==='女'?'👩 女':'👨 男'}</span>`:''}
+        ${memPill}
+      </div>
     </div>`;
 
   const tabBar=`<div style="padding:0 4px;margin-top:4px;margin-bottom:2px;flex-shrink:0"><div class="person-tab-bar" style="margin:0">
@@ -2241,6 +2255,7 @@ function renderPerson(){
       <div style="margin-top:6px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap">
         <span class="rel-tag ${relCls(p.relation,cf)}">${p.relation}</span>
         ${p.gender?`<span class="gender-badge">${p.gender==='女'?'👩 女':'👨 男'}</span>`:''}
+        <button onclick="openMemoriesOverlay(false)" style="background:var(--card);border:1.5px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--text);display:inline-flex;align-items:center;gap:4px;touch-action:manipulation">🪞 人物画像${(p.fragments||[]).filter(f=>f.type==='memory').length?' '+(p.fragments||[]).filter(f=>f.type==='memory').length+'条':''}</button>
       </div>
     </div>`;
 
@@ -2349,6 +2364,34 @@ function buildMemoriesHTML(memories){
 function toggleMemories(el){
   el.querySelector('.mem-arrow').classList.toggle('open');
   el.nextElementSibling.classList.toggle('open');
+}
+function openMemoriesOverlay(isSelf){
+  const memories=isSelf
+    ?(D.me.selfFragments||[]).filter(f=>f.type==='memory')
+    :(curPerson?.fragments||[]).filter(f=>f.type==='memory');
+  const name=isSelf?(D.me.name||'我'):(curPerson?.name||'');
+  document.getElementById('memoriesOverlayTitle').textContent=name+'的画像';
+  const body=document.getElementById('memoriesOverlayBody');
+  body.innerHTML=memories.length
+    ?memories.map(m=>`<div class="memory-item" id="mov-${m.id}">
+        <div class="memory-content">${m.content.replace(/\n/g,'<br>')}</div>
+        <div class="memory-date">${m.date}</div>
+        <button class="memory-del" onclick="delMemoryOverlay('${m.id}',${isSelf})">✕</button>
+      </div>`).join('')
+    :`<div style="text-align:center;padding:60px 20px;color:var(--muted);font-size:13px;line-height:1.9">还没有画像记录<br>在感受或碎片中点 ＋ 添加</div>`;
+  document.getElementById('memoriesOverlay').style.transform='translateX(0)';
+}
+function closeMemoriesOverlay(){
+  document.getElementById('memoriesOverlay').style.transform='translateX(100%)';
+}
+async function delMemoryOverlay(id,isSelf){
+  const{error}=await _SB.from('fragments').delete().eq('id',id);
+  if(error){toast('删除失败');return;}
+  if(isSelf&&D.me.selfFragments) D.me.selfFragments=D.me.selfFragments.filter(f=>f.id!==id);
+  if(!isSelf&&curPerson?.fragments) curPerson.fragments=curPerson.fragments.filter(f=>f.id!==id);
+  document.getElementById('mov-'+id)?.remove();
+  document.getElementById('mem-'+id)?.remove();
+  toast('已删除');
 }
 async function _saveMemory(content,isSelf){
   if(!content.trim()){toast('内容为空');return;}
