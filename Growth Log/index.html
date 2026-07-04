@@ -1851,6 +1851,9 @@ function renderProfileTab(){
           <input class="chat-search-input" id="chatSearchInput" type="search" placeholder="搜索消息或日期，如 6.17..." oninput="filterChat(this.value)">
         </div>
         <div class="chat-messages" id="chatMessages">${bubbles}</div>
+        <div style="display:flex;justify-content:flex-end;flex-shrink:0;padding:2px 2px 0">
+          <button onclick="const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight" style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation;opacity:.75">↓</button>
+        </div>
         <div class="chat-input-bar">
           <textarea class="chat-input" id="selfImprTxt" placeholder="说说你最近的感受..." rows="2"></textarea>
           <button class="chat-send" onclick="saveMyImpression()">↑</button>
@@ -2325,6 +2328,9 @@ function renderPerson(){
           <input class="chat-search-input" id="chatSearchInput" type="search" placeholder="搜索消息或日期，如 6.17..." oninput="filterChat(this.value)">
         </div>
         <div class="chat-messages" id="chatMessages">${bubbles}</div>
+        <div style="display:flex;justify-content:flex-end;flex-shrink:0;padding:2px 2px 0">
+          <button onclick="const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight" style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation;opacity:.75">↓</button>
+        </div>
         <div class="chat-input-bar">
           <textarea class="chat-input" id="impressionTxt" placeholder="说说你的感受..." rows="2"></textarea>
           <button class="chat-send" onclick="saveImpression()">↑</button>
