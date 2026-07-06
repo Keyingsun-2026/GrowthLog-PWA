@@ -1155,6 +1155,31 @@ async function loadAllData(){
   }
   setPct(100);
   document.getElementById('loadingOverlay').style.display='none';
+  // 如果加载完 profile 仍为空（p===null），说明 session 可能过期了——自动重新鉴权
+  if(!p && _user){
+    console.warn('数据加载为空，尝试刷新 session');
+    const fresh = await _sbRefresh();
+    if(!fresh){
+      // refresh 失败，session 已失效，提示重新登录
+      await _sbSaveSession(null);
+      _user=null;
+      showAuthScreen();
+      setTimeout(()=>toast('登录已过期，请重新登录'),300);
+    } else {
+      // refresh 成功，重新拉取数据
+      _user=fresh.user;
+      const {p:p2,ppl:ppl2}=await _fetchAppData().catch(()=>({p:null,ppl:null}));
+      if(p2) D.me={name:p2.name||'',birthday:p2.birthday||'',photo:p2.photo_url||null,gender:p2.gender||'女',selfFragments:[],_selfFragsLoaded:false};
+      if(ppl2){
+        const selfRec=ppl2.find(r=>r.relation==='__self__');
+        if(selfRec) D.me.selfPersonId=selfRec.id;
+        D.people=ppl2.filter(r=>r.relation!=='__self__').map(r=>({
+          id:r.id,name:r.name||'',birthday:r.birthday||'',relation:r.relation||'',gender:r.gender||'',
+          customFamily:r.custom_family||false,photo:r.photo_url||null,fragments:[],_fragmentsLoaded:false
+        }));
+      }
+    }
+  }
 }
 
 function showAuthScreen(){
