@@ -841,164 +841,19 @@ input,textarea{max-width:100%;box-sizing:border-box}
 </div>
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-// ════════════ SUPABASE 内嵌客户端（无外部 CDN 依赖）════════════
+// ════════════ SUPABASE 官方 SDK ════════════
 const _SB_URL = 'https://wbfzafinvuxfyhycmpjr.supabase.co';
 const _SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndiZnphZmludnV4ZnloeWNtcGpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NzcyMTAsImV4cCI6MjA5NzE1MzIxMH0.MDfUOyRQKR6DDpNISFx2jodQ9cRdW60shvbkgPjpDhI';
-const _SB_SESSION_KEY = 'gl-sb-session';
-
-// IndexedDB 存 session（比 localStorage 稳定）
-const _idb = {
-  _open(){ return new Promise((res,rej)=>{ const r=indexedDB.open('gl-auth',1); r.onupgradeneeded=e=>e.target.result.createObjectStore('kv'); r.onsuccess=e=>res(e.target.result); r.onerror=rej; }); },
-  async get(k){ try{ const db=await this._open(); return await new Promise((res,rej)=>{ const r=db.transaction('kv').objectStore('kv').get(k); r.onsuccess=()=>res(r.result??null); r.onerror=()=>res(null); }); }catch{ return null; } },
-  async set(k,v){ try{ const db=await this._open(); await new Promise((res,rej)=>{ const tx=db.transaction('kv','readwrite'); tx.objectStore('kv').put(v,k); tx.oncomplete=res; tx.onerror=rej; }); }catch{} },
-  async del(k){ try{ const db=await this._open(); await new Promise((res,rej)=>{ const tx=db.transaction('kv','readwrite'); tx.objectStore('kv').delete(k); tx.oncomplete=res; tx.onerror=rej; }); }catch{} }
-};
-
-let _sbSession = null;
-let _sbListeners = [];
-
-async function _sbLoadSession(){
-  try{ const raw=await _idb.get(_SB_SESSION_KEY); if(raw) _sbSession=JSON.parse(raw); }catch{}
-}
-async function _sbSaveSession(s){
-  _sbSession=s;
-  if(s) await _idb.set(_SB_SESSION_KEY, JSON.stringify(s));
-  else await _idb.del(_SB_SESSION_KEY);
-}
-async function _sbRefresh(){
-  if(!_sbSession?.refresh_token) return null;
-  try{
-    const ctrl=new AbortController();
-    const timer=setTimeout(()=>ctrl.abort(),10000);
-    let res;
-    try{
-      res=await fetch(_SB_URL+'/auth/v1/token?grant_type=refresh_token',{
-        method:'POST', headers:{'apikey':_SB_KEY,'Content-Type':'application/json'},
-        body:JSON.stringify({refresh_token:_sbSession.refresh_token}),
-        signal:ctrl.signal
-      });
-    }finally{ clearTimeout(timer); }
-    if(!res.ok){await _sbSaveSession(null);return null;}
-    const d=await res.json();
-    const s={access_token:d.access_token,refresh_token:d.refresh_token,
-      expires_at:Math.floor(Date.now()/1000)+(d.expires_in||3600),user:d.user||_sbSession.user};
-    await _sbSaveSession(s); return s;
-  }catch{return null;}
-}
-async function _sbGetValid(){
-  if(!_sbSession) await _sbLoadSession();
-  if(!_sbSession) return null;
-  if(_sbSession.expires_at < Math.floor(Date.now()/1000)+300) return await _sbRefresh();
-  return _sbSession;
-}
-function _sbHeaders(extra={}){
-  const h={'apikey':_SB_KEY,'Content-Type':'application/json',...extra};
-  if(_sbSession?.access_token) h['Authorization']='Bearer '+_sbSession.access_token;
-  return h;
-}
-async function _sbNotify(event,session){
-  for(const cb of _sbListeners){ try{await cb(event,session);}catch{} }
-}
-
-// Auth
-const _sbAuth = {
-  async getSession(){
-    const s=await _sbGetValid();
-    return {data:{session:s},error:null};
-  },
-  onAuthStateChange(cb){ _sbListeners.push(cb); return {data:{subscription:{unsubscribe(){_sbListeners=_sbListeners.filter(x=>x!==cb);}}}}; },
-  async signInWithPassword({email,password}){
-    try{
-      const res=await fetch(_SB_URL+'/auth/v1/token?grant_type=password',{
-        method:'POST',headers:{'apikey':_SB_KEY,'Content-Type':'application/json'},
-        body:JSON.stringify({email,password})
-      });
-      const d=await res.json();
-      if(!res.ok) return {data:null,error:{message:d.error_description||d.msg||'邮箱或密码错误'}};
-      const s={access_token:d.access_token,refresh_token:d.refresh_token,
-        expires_at:Math.floor(Date.now()/1000)+(d.expires_in||3600),user:d.user};
-      await _sbSaveSession(s);
-      await _sbNotify('SIGNED_IN',s);
-      return {data:{session:s},error:null};
-    }catch(e){return {data:null,error:{message:e.message}};}
-  },
-  async signUp({email,password}){
-    try{
-      const res=await fetch(_SB_URL+'/auth/v1/signup',{
-        method:'POST',headers:{'apikey':_SB_KEY,'Content-Type':'application/json'},
-        body:JSON.stringify({email,password})
-      });
-      const d=await res.json();
-      if(!res.ok) return {data:null,error:{message:d.error_description||d.msg||'注册失败'}};
-      if(d.access_token){
-        const s={access_token:d.access_token,refresh_token:d.refresh_token,
-          expires_at:Math.floor(Date.now()/1000)+(d.expires_in||3600),user:d.user};
-        await _sbSaveSession(s);
-        await _sbNotify('SIGNED_IN',s);
-      }
-      return {data:d,error:null};
-    }catch(e){return {data:null,error:{message:e.message}};}
-  },
-  async signOut(){
-    try{ if(_sbSession?.access_token) await fetch(_SB_URL+'/auth/v1/logout',{method:'POST',headers:_sbHeaders()}); }catch{}
-    await _sbSaveSession(null);
-    await _sbNotify('SIGNED_OUT',null);
-  }
-};
-
-// Query builder
-function _sbFrom(table){
-  const q={method:'GET',filters:[],body:null,sel:'*',single:false,maybe:false,order:null,upsert:false,doSel:false};
-  const b={
-    select(c){q.sel=c||'*';q.doSel=true;return b;},
-    eq(col,val){q.filters.push(col+'=eq.'+encodeURIComponent(val));return b;},
-    order(col,{ascending=true}={}){q.order=col+'.'+(ascending?'asc':'desc');return b;},
-    single(){q.single=true;return b;},
-    maybeSingle(){q.single=true;q.maybe=true;return b;},
-    insert(d){q.method='POST';q.body=d;return b;},
-    upsert(d){q.method='POST';q.body=d;q.upsert=true;return b;},
-    update(d){q.method='PATCH';q.body=d;return b;},
-    delete(){q.method='DELETE';return b;},
-    async then(resolve){
-      try{
-        await _sbGetValid();
-        let url=_SB_URL+'/rest/v1/'+table;
-        const ps=[...q.filters];
-        if(q.method==='GET'||q.doSel) ps.push('select='+encodeURIComponent(q.sel));
-        if(q.order) ps.push('order='+q.order);
-        if(ps.length) url+='?'+ps.join('&');
-        const h=_sbHeaders();
-        if(q.maybe) h['Accept']='application/json';
-        else if(q.single) h['Accept']='application/vnd.pgrst.object+json';
-        if(q.upsert) h['Prefer']='return=representation,resolution=merge-duplicates';
-        else if(q.method==='POST'||q.method==='PATCH') h['Prefer']='return=representation';
-        // 12 秒超时：避免请求无限挂起导致 App 卡死
-        const ctrl=new AbortController();
-        const timer=setTimeout(()=>ctrl.abort(),12000);
-        let res;
-        try{
-          res=await fetch(url,{method:q.method,headers:h,body:q.body?JSON.stringify(q.body):undefined,signal:ctrl.signal});
-        }finally{ clearTimeout(timer); }
-        if(res.status===204){resolve({data:null,error:null});return;}
-        const txt=await res.text();
-        let data=null; try{data=txt?JSON.parse(txt):null;}catch{}
-        if(!res.ok){
-          if(q.maybe&&res.status===406){resolve({data:null,error:null});return;}
-          resolve({data:null,error:data||{message:'HTTP '+res.status}});return;
-        }
-        // maybeSingle: return first element or null
-        if(q.maybe&&Array.isArray(data)) data=data[0]??null;
-        resolve({data,error:null});
-      }catch(e){resolve({data:null,error:{message:e.name==='AbortError'?'请求超时':e.message}});}
-    }
-  };
-  return b;
-}
-
-const _SB = { auth: _sbAuth, from: _sbFrom };
+const _SB = supabase.createClient(_SB_URL, _SB_KEY,
+  { auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: false, storageKey: 'gl-sb-session' } }
+);
+// 获取当前 access token（用于直接 fetch Edge Function）
+async function _getToken(){ const {data:{session}}=await _SB.auth.getSession(); return session?.access_token||''; }
 let _user = null;
 let _userEmail = '';
+let _appLoaded = false;
 
 // ════════════ DATA ════════════
 let D = { me:{name:'',birthday:'',photo:null,gender:'女',selfFragments:[],_selfFragsLoaded:false}, people:[] };
@@ -1023,12 +878,8 @@ async function handleResetPw(){
   errEl.className='auth-err';errEl.textContent='发送中...';
   try{
     const redirectTo=window.location.origin+window.location.pathname;
-    const res=await fetch(_SB_URL+'/auth/v1/recover',{
-      method:'POST',
-      headers:{'apikey':_SB_KEY,'Content-Type':'application/json'},
-      body:JSON.stringify({email,redirectTo})
-    });
-    if(res.ok){errEl.className='auth-ok';errEl.textContent='重置邮件已发送，请查收 📩';}
+    const {error:resetErr}=await _SB.auth.resetPasswordForEmail(email,{redirectTo});
+    if(!resetErr){errEl.className='auth-ok';errEl.textContent='重置邮件已发送，请查收 📩';}
     else{errEl.className='auth-err';errEl.textContent='发送失败，请检查邮箱是否正确';}
   }catch(e){errEl.className='auth-err';errEl.textContent='网络错误，请重试';}
 }
@@ -1040,7 +891,7 @@ function _parseHashParams(){
   h.split('&').forEach(seg=>{const[k,v]=seg.split('=');if(k)p[decodeURIComponent(k)]=decodeURIComponent(v||'');});
   return p;
 }
-function showSetPasswordForm(token){
+function showSetPasswordForm(){
   document.getElementById('appRoot').style.display='none';
   document.getElementById('authScreen').style.display='flex';
   document.querySelector('.auth-card').innerHTML=`
@@ -1051,31 +902,24 @@ function showSetPasswordForm(token){
     <div class="fg"><label>新密码</label><input class="fi" type="password" id="newPw1" placeholder="至少 6 位"></div>
     <div class="fg"><label>确认密码</label><input class="fi" type="password" id="newPw2" placeholder="再输一次"></div>
     <div class="auth-err" id="resetErr"></div>
-    <button class="sub-btn" onclick="doSetPassword('${token}')" style="margin-top:0">确认设置</button>
+    <button class="sub-btn" onclick="doSetPassword()" style="margin-top:0">确认设置</button>
   `;
   history.replaceState(null,'',window.location.pathname);
 }
-async function doSetPassword(token){
+async function doSetPassword(){
   const p1=document.getElementById('newPw1').value;
   const p2=document.getElementById('newPw2').value;
   const errEl=document.getElementById('resetErr');
   if(p1.length<6){errEl.className='auth-err';errEl.textContent='密码至少 6 位';return;}
   if(p1!==p2){errEl.className='auth-err';errEl.textContent='两次密码不一致';return;}
   errEl.className='auth-err';errEl.textContent='设置中...';
-  try{
-    const res=await fetch(_SB_URL+'/auth/v1/user',{
-      method:'PUT',
-      headers:{'apikey':_SB_KEY,'Authorization':'Bearer '+token,'Content-Type':'application/json'},
-      body:JSON.stringify({password:p1})
-    });
-    if(res.ok){
-      errEl.className='auth-ok';errEl.textContent='密码已重置！正在跳转登录...';
-      setTimeout(()=>location.reload(),1800);
-    } else {
-      const d=await res.json().catch(()=>({}));
-      errEl.className='auth-err';errEl.textContent=d.message||'设置失败，请重试';
-    }
-  }catch(e){errEl.className='auth-err';errEl.textContent='网络错误，请重试';}
+  const{error}=await _SB.auth.updateUser({password:p1});
+  if(!error){
+    errEl.className='auth-ok';errEl.textContent='密码已重置！正在跳转登录...';
+    setTimeout(()=>location.reload(),1800);
+  } else {
+    errEl.className='auth-err';errEl.textContent=error.message||'设置失败，请重试';
+  }
 }
 
 async function handleAuth(){
@@ -1155,30 +999,10 @@ async function loadAllData(){
   }
   setPct(100);
   document.getElementById('loadingOverlay').style.display='none';
-  // 如果加载完 profile 仍为空（p===null），说明 session 可能过期了——自动重新鉴权
+  // 如果加载完 profile 仍为空，说明 token 可能已失效，强制重新登录
   if(!p && _user){
-    console.warn('数据加载为空，尝试刷新 session');
-    const fresh = await _sbRefresh();
-    if(!fresh){
-      // refresh 失败，session 已失效，提示重新登录
-      await _sbSaveSession(null);
-      _user=null;
-      showAuthScreen();
-      setTimeout(()=>toast('登录已过期，请重新登录'),300);
-    } else {
-      // refresh 成功，重新拉取数据
-      _user=fresh.user;
-      const {p:p2,ppl:ppl2}=await _fetchAppData().catch(()=>({p:null,ppl:null}));
-      if(p2) D.me={name:p2.name||'',birthday:p2.birthday||'',photo:p2.photo_url||null,gender:p2.gender||'女',selfFragments:[],_selfFragsLoaded:false};
-      if(ppl2){
-        const selfRec=ppl2.find(r=>r.relation==='__self__');
-        if(selfRec) D.me.selfPersonId=selfRec.id;
-        D.people=ppl2.filter(r=>r.relation!=='__self__').map(r=>({
-          id:r.id,name:r.name||'',birthday:r.birthday||'',relation:r.relation||'',gender:r.gender||'',
-          customFamily:r.custom_family||false,photo:r.photo_url||null,fragments:[],_fragmentsLoaded:false
-        }));
-      }
-    }
+    await _SB.auth.signOut();
+    setTimeout(()=>toast('登录已过期，请重新登录'),300);
   }
 }
 
@@ -1975,7 +1799,7 @@ async function saveMyImpression(){
     const _dc1=new AbortController(); setTimeout(()=>_dc1.abort(),25000);
     const resp=await fetch(_SB_URL+'/functions/v1/deepseek-proxy',{
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_sbSession?.access_token||''),'apikey':_SB_KEY},
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(await _getToken()),'apikey':_SB_KEY},
       body:JSON.stringify({messages:[...history,{role:'user',content:txt}],personInfo:selfInfo,isSelf:true}),
       signal:_dc1.signal
     });
@@ -2236,7 +2060,7 @@ async function saveImpression(){
     const _dc2=new AbortController(); setTimeout(()=>_dc2.abort(),25000);
     const resp=await fetch(_SB_URL+'/functions/v1/deepseek-proxy',{
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(_sbSession?.access_token||''),'apikey':_SB_KEY},
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(await _getToken()),'apikey':_SB_KEY},
       body:JSON.stringify({messages:[...history,{role:'user',content:txt}],personInfo,isSelf:false}),
       signal:_dc2.signal
     });
@@ -3459,44 +3283,36 @@ if('serviceWorker' in navigator){
 // ════════════ INIT ════════════
 _dpInitListeners();
 
+async function _startApp(session){
+  if(_appLoaded) return; // 防止 TOKEN_REFRESHED 等事件触发重复加载
+  _appLoaded=true;
+  _user=session.user; _userEmail=_user.email||'';
+  await loadAllData();
+  showApp();
+  const t=localStorage.getItem('gl_tab');
+  if(t&&['profile','circle','settings'].includes(t)) switchTab(t);
+  else renderProfileTab();
+}
+
 _SB.auth.onAuthStateChange(async (event, session) => {
-  if(event==='SIGNED_IN'&&session){
-    _user=session.user; _userEmail=_user.email||'';
-    await loadAllData();
-    showApp();
-    const t=localStorage.getItem('gl_tab');
-    if(t&&['profile','circle','settings'].includes(t)) switchTab(t);
-    else renderProfileTab();
+  if(event==='INITIAL_SESSION'){
+    if(session){ await _startApp(session); }
+    else{ document.getElementById('loadingOverlay').style.display='none'; showAuthScreen(); }
+  } else if(event==='SIGNED_IN'&&session&&!_appLoaded){
+    await _startApp(session);
   } else if(event==='SIGNED_OUT'){
-    _user=null; _userEmail='';
+    _appLoaded=false; _user=null; _userEmail='';
     D={me:{name:'',birthday:'',photo:null,gender:'女',selfFragments:[],_selfFragsLoaded:false},people:[]};
     showAuthScreen();
   }
 });
 
-(async()=>{
-  // 检查是否是密码重置链接跳转回来
+// 密码重置链接处理（hash 里含 type=recovery）
+(()=>{
   const hp=_parseHashParams();
   if(hp.type==='recovery'&&hp.access_token){
-    document.getElementById('loadingOverlay').style.display='none';
-    showSetPasswordForm(hp.access_token);
-    return;
-  }
-
-  // 先显示 loading，静默检查 session，已登录直接进 app
-  document.getElementById('loadingOverlay').style.display='flex';
-  setPct(5);
-  const session = await _sbGetValid();
-  if(session){
-    _user=session.user; _userEmail=_user.email||'';
-    await loadAllData();
-    showApp();
-    const t=localStorage.getItem('gl_tab');
-    if(t&&['profile','circle','settings'].includes(t)) switchTab(t);
-    else renderProfileTab();
-  } else {
-    document.getElementById('loadingOverlay').style.display='none';
-    showAuthScreen();
+    _SB.auth.setSession({access_token:hp.access_token,refresh_token:hp.refresh_token||hp.access_token})
+      .then(()=>{ document.getElementById('loadingOverlay').style.display='none'; showSetPasswordForm(); history.replaceState(null,'',window.location.pathname); });
   }
 })();
 </script>
