@@ -1117,14 +1117,23 @@ function setPct(n){
 }
 
 // ════════════ DATA LOAD ════════════
-async function _fetchAppData(){
-  // 不设超时：让 Supabase 服务有足够时间从休眠中唤醒
-  const [{data:p,error:e1},{data:ppl,error:e2}]=await Promise.all([
-    _SB.from('profiles').select('*').eq('id',_user.id).maybeSingle(),
-    _SB.from('people').select('id,name,birthday,relation,gender,custom_family,photo_url').eq('user_id',_user.id).order('created_at',{ascending:true})
-  ]);
-  // 把错误作为值返回，不抛出
-  return {p, ppl, err: e1||e2||null};
+async function _fetchAppData(timeoutMs=14000){
+  // Promise.race：超时以值返回，不抛错，让调用方决定是否重试
+  const _timeout=new Promise(resolve=>
+    setTimeout(()=>resolve({p:null,ppl:null,err:{message:'连接超时'}}), timeoutMs)
+  );
+  const _fetch=(async()=>{
+    try{
+      const [{data:p,error:e1},{data:ppl,error:e2}]=await Promise.all([
+        _SB.from('profiles').select('*').eq('id',_user.id).maybeSingle(),
+        _SB.from('people').select('id,name,birthday,relation,gender,custom_family,photo_url').eq('user_id',_user.id).order('created_at',{ascending:true})
+      ]);
+      return {p,ppl,err:e1||e2||null};
+    }catch(e){
+      return {p:null,ppl:null,err:{message:e.message||'网络错误'}};
+    }
+  })();
+  return Promise.race([_fetch,_timeout]);
 }
 async function loadAllData(){
   document.getElementById('loadingOverlay').style.display='flex';
@@ -1132,28 +1141,23 @@ async function loadAllData(){
   let p=null,ppl=null;
   let lastErr=null;
 
-  // 最多尝试 3 次，延迟递增，应对服务冷启动
+  // 最多尝试 3 次，超时递增（14s/20s/30s），应对服务冷启动和 iOS 网络挂起
+  const timeouts=[14000,20000,30000];
+  const waits=[0,3000,5000];
   for(let attempt=0; attempt<3; attempt++){
     if(attempt>0){
-      const wait=[0,4000,8000][attempt];
-      document.querySelector('#loadingOverlay .loading-text').textContent=`连接中，第 ${attempt+1} 次尝试…`;
-      setPct(20+attempt*15);
-      await new Promise(r=>setTimeout(r,wait));
+      document.querySelector('#loadingOverlay .loading-text').textContent=`第 ${attempt+1} 次重试…`;
+      setPct(30+attempt*15);
+      await new Promise(r=>setTimeout(r,waits[attempt]));
     }
-    try{
-      const res=await _fetchAppData();
-      if(res.err){
-        lastErr=res.err;
-        console.warn(`加载尝试 ${attempt+1} 失败(server error):`,res.err);
-        continue;
-      }
+    const res=await _fetchAppData(timeouts[attempt]);
+    if(!res.err){
       p=res.p; ppl=res.ppl;
       lastErr=null;
       break;
-    }catch(e){
-      lastErr=e;
-      console.warn(`加载尝试 ${attempt+1} 失败(network):`,e.message||e);
     }
+    lastErr=res.err;
+    console.warn(`加载尝试 ${attempt+1} 失败:`,res.err.message||res.err);
   }
 
   if(lastErr!==null && p===null){
