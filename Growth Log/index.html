@@ -475,6 +475,9 @@ input,textarea{max-width:100%;box-sizing:border-box}
       <div class="auth-err" id="authErr"></div>
       <button class="sub-btn" id="authBtn" type="submit" style="margin-top:0">登录</button>
     </form>
+    <div id="bioLoginRow" style="display:none;margin-top:10px">
+      <button onclick="bioLogin()" style="width:100%;padding:12px;border-radius:12px;background:var(--bg);border:1.5px solid var(--border);font-size:15px;cursor:pointer;color:var(--text);touch-action:manipulation;display:flex;align-items:center;justify-content:center;gap:8px"><span>🪪</span>Face ID 登录</button>
+    </div>
     <div style="text-align:center;margin-top:12px">
       <button onclick="handleResetPw()" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;text-decoration:underline;touch-action:manipulation">忘记密码？发送重置邮件</button>
     </div>
@@ -922,6 +925,133 @@ async function doSetPassword(){
   }
 }
 
+// ════════════ FACE ID / 生物识别登录 ════════════
+let _tempPw = null; // 登录成功后短暂保留密码用于 Face ID 注册
+
+async function _bioAvailable(){
+  if(!window.PublicKeyCredential) return false;
+  try{ return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); }
+  catch{ return false; }
+}
+
+async function _bioInit(){
+  const row = document.getElementById('bioLoginRow');
+  if(!row) return;
+  row.style.display = (localStorage.getItem('gl_bio_enabled') && await _bioAvailable()) ? 'block' : 'none';
+}
+
+async function enableBioLogin(email, pw){
+  if(!await _bioAvailable()){ toast('此设备不支持生物识别'); return; }
+  try{
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const userId = crypto.getRandomValues(new Uint8Array(16));
+    const cred = await navigator.credentials.create({publicKey:{
+      challenge,
+      rp:{name:'GrowthLog',id:window.location.hostname},
+      user:{id:userId,name:email,displayName:email},
+      pubKeyCredParams:[{alg:-7,type:'public-key'},{alg:-257,type:'public-key'}],
+      authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required'},
+      timeout:60000
+    }});
+    localStorage.setItem('gl_bio_enabled','1');
+    localStorage.setItem('gl_bio_cred_id', btoa(String.fromCharCode(...new Uint8Array(cred.rawId))));
+    localStorage.setItem('gl_bio_email', email);
+    localStorage.setItem('gl_bio_pass', btoa(unescape(encodeURIComponent(pw))));
+    toast('Face ID 已启用 ✦');
+    const row = document.getElementById('bioLoginRow');
+    if(row) row.style.display='block';
+  }catch(e){
+    if(e.name!=='NotAllowedError') toast('Face ID 设置失败，请重试');
+  }
+}
+
+async function bioLogin(){
+  const email = localStorage.getItem('gl_bio_email');
+  const passB64 = localStorage.getItem('gl_bio_pass');
+  const credIdB64 = localStorage.getItem('gl_bio_cred_id');
+  if(!email||!passB64){ toast('请先在设置中启用 Face ID'); return; }
+  const errEl = document.getElementById('authErr');
+  if(errEl) errEl.textContent='';
+  try{
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const allowCredentials = credIdB64
+      ? [{type:'public-key',id:Uint8Array.from(atob(credIdB64),c=>c.charCodeAt(0)),transports:['internal']}]
+      : [];
+    await navigator.credentials.get({publicKey:{challenge,allowCredentials,userVerification:'required',timeout:60000}});
+    // Face ID 通过 → 自动登录
+    const pw = decodeURIComponent(escape(atob(passB64)));
+    const btn = document.getElementById('authBtn');
+    if(btn){ btn.textContent='登录中...'; btn.disabled=true; }
+    const{error}=await _SB.auth.signInWithPassword({email,password:pw});
+    if(error){
+      if(errEl) errEl.textContent='自动登录失败，请手动输入密码';
+      if(btn){ btn.textContent='登录'; btn.disabled=false; }
+    }
+  }catch(e){
+    if(e.name==='NotAllowedError') return; // 用户取消
+    if(errEl) errEl.textContent='Face ID 验证失败，请手动登录';
+  }
+}
+
+function _offerBioFromSettings(){
+  // 从设置页启用 Face ID，需要用户输入密码确认
+  const sheet=document.createElement('div');
+  sheet.id='_bioSetSheet';
+  sheet.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:600;display:flex;align-items:flex-end';
+  sheet.innerHTML=`<div style="width:100%;background:var(--card);border-radius:20px 20px 0 0;padding:20px 20px max(20px,env(safe-area-inset-bottom,0px))">
+    <div style="font-size:16px;font-weight:700;margin-bottom:14px;text-align:center">输入密码以启用 Face ID</div>
+    <div class="fg"><input class="fi" type="password" id="_bioPwInput" placeholder="当前登录密码" autocomplete="current-password"></div>
+    <button onclick="_confirmBioFromSettings()" style="width:100%;padding:13px;border-radius:12px;background:var(--accent);color:#fff;border:none;font-size:15px;cursor:pointer;touch-action:manipulation;margin-top:8px;font-family:inherit">确认并启用</button>
+    <button onclick="document.getElementById('_bioSetSheet').remove()" style="width:100%;padding:12px;border-radius:12px;background:none;border:none;font-size:14px;cursor:pointer;color:var(--muted);touch-action:manipulation;font-family:inherit">取消</button>
+  </div>`;
+  document.body.appendChild(sheet);
+  setTimeout(()=>document.getElementById('_bioPwInput')?.focus(),100);
+}
+async function _confirmBioFromSettings(){
+  const pw=document.getElementById('_bioPwInput')?.value;
+  if(!pw){toast('请输入密码');return;}
+  document.getElementById('_bioSetSheet')?.remove();
+  await enableBioLogin(_userEmail,pw);
+  renderSettingsTab();
+}
+function disableBioLogin(){
+  localStorage.removeItem('gl_bio_enabled');
+  localStorage.removeItem('gl_bio_cred_id');
+  localStorage.removeItem('gl_bio_email');
+  localStorage.removeItem('gl_bio_pass');
+  const row = document.getElementById('bioLoginRow');
+  if(row) row.style.display='none';
+  toast('Face ID 已关闭');
+}
+
+function _offerBioEnrollment(){
+  if(!_tempPw) return;
+  const existing = document.getElementById('_bioOfferSheet');
+  if(existing) existing.remove();
+  const sheet = document.createElement('div');
+  sheet.id='_bioOfferSheet';
+  sheet.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:600;display:flex;align-items:flex-end';
+  sheet.innerHTML=`<div style="width:100%;background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px max(24px,env(safe-area-inset-bottom,0px));text-align:center">
+    <div style="font-size:30px;margin-bottom:8px">🪪</div>
+    <div style="font-size:16px;font-weight:700;margin-bottom:6px">启用 Face ID 快速登录？</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:22px;line-height:1.6">下次 session 过期时，刷脸即可重新登录<br>无需再输邮箱和密码</div>
+    <button onclick="_acceptBio()" style="width:100%;padding:13px;border-radius:12px;background:var(--accent);color:#fff;border:none;font-size:15px;cursor:pointer;touch-action:manipulation;margin-bottom:8px;font-family:inherit">启用 Face ID</button>
+    <button onclick="_dismissBio()" style="width:100%;padding:12px;border-radius:12px;background:none;border:none;font-size:14px;cursor:pointer;color:var(--muted);touch-action:manipulation;font-family:inherit">以后再说</button>
+  </div>`;
+  document.body.appendChild(sheet);
+}
+
+async function _acceptBio(){
+  const sheet=document.getElementById('_bioOfferSheet');
+  if(sheet) sheet.remove();
+  if(_tempPw){ await enableBioLogin(_userEmail,_tempPw); _tempPw=null; }
+}
+function _dismissBio(){
+  const sheet=document.getElementById('_bioOfferSheet');
+  if(sheet) sheet.remove();
+  _tempPw=null;
+}
+
 async function handleAuth(){
   const email=document.getElementById('authEmail').value.trim();
   const pw=document.getElementById('authPassword').value;
@@ -933,6 +1063,7 @@ async function handleAuth(){
   if(_authMode==='login'){
     const{error}=await _SB.auth.signInWithPassword({email,password:pw});
     if(error){errEl.textContent='邮箱或密码错误';btn.textContent='登录';btn.disabled=false;}
+    else if(!localStorage.getItem('gl_bio_enabled')) _tempPw=pw; // 暂存，登录后提示启用 Face ID
   } else {
     const{error}=await _SB.auth.signUp({email,password:pw});
     if(error){errEl.textContent=error.message;btn.textContent='注册';btn.disabled=false;}
@@ -1009,6 +1140,7 @@ async function loadAllData(){
 function showAuthScreen(){
   document.getElementById('appRoot').style.display='none';
   document.getElementById('authScreen').style.display='flex';
+  _bioInit(); // 根据是否已启用决定是否显示 Face ID 按钮
 }
 function showApp(){
   document.getElementById('authScreen').style.display='none';
@@ -2723,6 +2855,19 @@ function renderSettingsTab(){
         </div>
         <div class="s-arr">›</div>
       </div>
+      ${localStorage.getItem('gl_bio_enabled')?`<div class="s-item" onclick="disableBioLogin();renderSettingsTab()">
+        <div class="s-item-left">
+          <div class="s-icon">🪪</div>
+          <div><div class="s-item-label">关闭 Face ID 登录</div><div class="s-item-desc">已启用，点击关闭</div></div>
+        </div>
+        <div class="s-arr">›</div>
+      </div>`:`<div class="s-item" onclick="_offerBioFromSettings()">
+        <div class="s-item-left">
+          <div class="s-icon">🪪</div>
+          <div><div class="s-item-label">启用 Face ID 登录</div><div class="s-item-desc">下次登录无需输密码</div></div>
+        </div>
+        <div class="s-arr">›</div>
+      </div>`}
     </div>
 
     <div class="s-section">
@@ -3292,6 +3437,11 @@ async function _startApp(session){
   const t=localStorage.getItem('gl_tab');
   if(t&&['profile','circle','settings'].includes(t)) switchTab(t);
   else renderProfileTab();
+  // 登录成功后询问是否启用 Face ID（首次登录、且设备支持）
+  if(_tempPw){
+    const pw=_tempPw; _tempPw=null;
+    if(await _bioAvailable()) setTimeout(()=>{ _tempPw=pw; _offerBioEnrollment(); },800);
+  }
 }
 
 _SB.auth.onAuthStateChange(async (event, session) => {
