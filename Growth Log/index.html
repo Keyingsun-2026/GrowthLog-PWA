@@ -1085,6 +1085,10 @@ function setPct(n){
 
 // ════════════ DATA LOAD ════════════
 async function _fetchAppData(){
+  const _timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('请求超时')),15000));
+  return await Promise.race([_doFetchAppData(), _timeout]);
+}
+async function _doFetchAppData(){
   const [{data:p},{data:ppl}]=await Promise.all([
     _SB.from('profiles').select('*').eq('id',_user.id).maybeSingle(),
     _SB.from('people').select('id,name,birthday,relation,gender,custom_family,photo_url').eq('user_id',_user.id).order('created_at',{ascending:true})
@@ -3444,11 +3448,9 @@ async function _startApp(session){
   }
 }
 
+// SIGNED_IN 只处理用户主动登录（signInWithPassword 触发），不处理启动
 _SB.auth.onAuthStateChange(async (event, session) => {
-  if(event==='INITIAL_SESSION'){
-    if(session){ await _startApp(session); }
-    else{ document.getElementById('loadingOverlay').style.display='none'; showAuthScreen(); }
-  } else if(event==='SIGNED_IN'&&session&&!_appLoaded){
+  if(event==='SIGNED_IN'&&session&&!_appLoaded){
     await _startApp(session);
   } else if(event==='SIGNED_OUT'){
     _appLoaded=false; _user=null; _userEmail='';
@@ -3457,12 +3459,25 @@ _SB.auth.onAuthStateChange(async (event, session) => {
   }
 });
 
-// 密码重置链接处理（hash 里含 type=recovery）
-(()=>{
+// 启动：明确检查已有 session，不依赖 INITIAL_SESSION 事件时序
+(async()=>{
+  // 密码重置链接处理
   const hp=_parseHashParams();
   if(hp.type==='recovery'&&hp.access_token){
-    _SB.auth.setSession({access_token:hp.access_token,refresh_token:hp.refresh_token||hp.access_token})
-      .then(()=>{ document.getElementById('loadingOverlay').style.display='none'; showSetPasswordForm(); history.replaceState(null,'',window.location.pathname); });
+    await _SB.auth.setSession({access_token:hp.access_token,refresh_token:hp.refresh_token||hp.access_token});
+    document.getElementById('loadingOverlay').style.display='none';
+    history.replaceState(null,'',window.location.pathname);
+    showSetPasswordForm();
+    return;
+  }
+
+  setPct(5);
+  const {data:{session},error}=await _SB.auth.getSession();
+  if(session){
+    await _startApp(session);
+  } else {
+    document.getElementById('loadingOverlay').style.display='none';
+    showAuthScreen();
   }
 })();
 </script>
