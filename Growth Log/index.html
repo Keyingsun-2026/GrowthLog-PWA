@@ -1116,11 +1116,35 @@ function setPct(n){
   if(el) el.textContent=n+'%';
 }
 
+// ════════════ DATA CACHE ════════════
+function _saveCache(p,ppl){
+  try{ localStorage.setItem('gl_data_cache',JSON.stringify({p,ppl,ts:Date.now()})); }catch{}
+}
+function _loadCache(){
+  try{
+    const raw=localStorage.getItem('gl_data_cache');
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch{ return null; }
+}
+function _applyData(p,ppl){
+  if(p) D.me={name:p.name||'',birthday:p.birthday||'',photo:p.photo_url||null,gender:p.gender||'女',selfFragments:[],_selfFragsLoaded:false};
+  if(ppl){
+    const selfRec=ppl.find(r=>r.relation==='__self__');
+    if(selfRec) D.me.selfPersonId=selfRec.id;
+    D.people=ppl.filter(r=>r.relation!=='__self__').map(r=>({
+      id:r.id,name:r.name||'',birthday:r.birthday||'',
+      relation:r.relation||'',gender:r.gender||'',
+      customFamily:r.custom_family||false,photo:r.photo_url||null,
+      fragments:[],_fragmentsLoaded:false
+    }));
+  }
+}
+
 // ════════════ DATA LOAD ════════════
-async function _fetchAppData(timeoutMs=14000){
-  // Promise.race：超时以值返回，不抛错，让调用方决定是否重试
+async function _fetchAppData(timeoutMs=10000){
   const _timeout=new Promise(resolve=>
-    setTimeout(()=>resolve({p:null,ppl:null,err:{message:'连接超时'}}), timeoutMs)
+    setTimeout(()=>resolve({p:null,ppl:null,err:{message:'连接超时'}}),timeoutMs)
   );
   const _fetch=(async()=>{
     try{
@@ -1135,75 +1159,55 @@ async function _fetchAppData(timeoutMs=14000){
   })();
   return Promise.race([_fetch,_timeout]);
 }
-async function loadAllData(){
-  document.getElementById('loadingOverlay').style.display='flex';
-  setPct(20);
-  let p=null,ppl=null;
-  let lastErr=null;
 
-  // 最多尝试 3 次，超时递增（14s/20s/30s），应对服务冷启动和 iOS 网络挂起
-  const timeouts=[14000,20000,30000];
-  const waits=[0,3000,5000];
-  for(let attempt=0; attempt<3; attempt++){
-    if(attempt>0){
-      document.querySelector('#loadingOverlay .loading-text').textContent=`第 ${attempt+1} 次重试…`;
-      setPct(30+attempt*15);
-      await new Promise(r=>setTimeout(r,waits[attempt]));
-    }
-    const res=await _fetchAppData(timeouts[attempt]);
-    if(!res.err){
-      p=res.p; ppl=res.ppl;
-      lastErr=null;
-      break;
-    }
-    lastErr=res.err;
-    console.warn(`加载尝试 ${attempt+1} 失败:`,res.err.message||res.err);
+// bgMode=true：后台刷新，不显示 overlay，失败静默
+async function loadAllData(bgMode=false){
+  if(!bgMode){
+    document.getElementById('loadingOverlay').style.display='flex';
+    setPct(20);
   }
-
-  if(lastErr!==null && p===null){
-    // 全部失败 → 显示重试界面（不进入空 app）
+  const res=await _fetchAppData(bgMode?8000:10000);
+  if(res.err){
+    if(bgMode){ console.warn('后台刷新失败:',res.err.message); return false; }
+    // 前台失败 → 显示错误界面
     const ol=document.getElementById('loadingOverlay');
     ol.innerHTML=`
       <div style="text-align:center;padding:24px 32px">
         <div style="font-size:36px;margin-bottom:16px">⚠️</div>
         <div style="font-size:15px;color:var(--text);margin-bottom:8px;font-weight:600">加载失败</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">可能是服务启动较慢，请稍后重试</div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:24px;word-break:break-all">${(lastErr&&(lastErr.message||lastErr.code||String(lastErr)))||'网络错误'}</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:20px">${res.err.message||'请检查网络连接'}</div>
         <button onclick="_retryLoadAllData()" style="background:var(--accent);color:#fff;border:none;border-radius:20px;padding:10px 28px;font-size:14px;cursor:pointer">重新加载</button>
         <div style="margin-top:12px">
           <button onclick="_SB.auth.signOut()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline">退出重新登录</button>
         </div>
       </div>`;
-    return false; // 告知 _startApp 加载失败
-  }
-
-  if(p) D.me={name:p.name||'',birthday:p.birthday||'',photo:p.photo_url||null,gender:p.gender||'女',selfFragments:[],_selfFragsLoaded:false};
-  if(ppl){
-    const selfRec=ppl.find(r=>r.relation==='__self__');
-    if(selfRec) D.me.selfPersonId=selfRec.id;
-    D.people=ppl.filter(r=>r.relation!=='__self__').map(r=>({
-      id:r.id, name:r.name||'', birthday:r.birthday||'',
-      relation:r.relation||'', gender:r.gender||'',
-      customFamily:r.custom_family||false, photo:r.photo_url||null,
-      fragments:[], _fragmentsLoaded:false
-    }));
-  }
-  setPct(100);
-  document.getElementById('loadingOverlay').style.display='none';
-  // profile 为空 → token 可能失效，强制重新登录
-  if(!p && _user){
-    await _SB.auth.signOut();
-    setTimeout(()=>toast('登录已过期，请重新登录'),300);
     return false;
+  }
+  const{p,ppl}=res;
+  _applyData(p,ppl);
+  _saveCache(p,ppl); // 成功后存缓存
+  if(!bgMode){
+    setPct(100);
+    document.getElementById('loadingOverlay').style.display='none';
+    if(!p&&_user){ await _SB.auth.signOut(); setTimeout(()=>toast('登录已过期，请重新登录'),300); return false; }
+  } else {
+    // 后台刷新成功 → 更新当前 tab
+    if(typeof renderCurrentTab==='function') renderCurrentTab();
+    else renderProfileTab();
   }
   return true;
 }
+
+function renderCurrentTab(){
+  if(curTab==='circle') renderCircleTab();
+  else renderProfileTab();
+}
+
 async function _retryLoadAllData(){
-  // 重置 overlay
   const ol=document.getElementById('loadingOverlay');
   ol.style.display='flex';
   ol.innerHTML=`<div class="loading-spinner"></div><div class="loading-text">加载中...</div><div id="loadingPct">5%</div>`;
-  const ok=await loadAllData();
+  const ok=await loadAllData(false);
   if(ok){
     showApp();
     const t=localStorage.getItem('gl_tab');
@@ -3497,16 +3501,35 @@ if('serviceWorker' in navigator){
 _dpInitListeners();
 
 async function _startApp(session){
-  if(_appLoaded) return; // 防止 TOKEN_REFRESHED 等事件触发重复加载
+  if(_appLoaded) return;
   _appLoaded=true;
   _user=session.user; _userEmail=_user.email||'';
-  const ok=await loadAllData();
-  if(!ok) return; // 加载失败，overlay 已显示重试界面
+
+  // ── 缓存优先：有缓存则立即显示，再后台刷新 ──
+  const cached=_loadCache();
+  if(cached&&cached.p){
+    _applyData(cached.p,cached.ppl);
+    document.getElementById('loadingOverlay').style.display='none';
+    showApp();
+    const t=localStorage.getItem('gl_tab');
+    if(t&&['profile','circle','settings'].includes(t)) switchTab(t);
+    else renderProfileTab();
+    // 后台静默刷新数据
+    setTimeout(()=>loadAllData(true),500);
+    if(_tempPw){
+      const pw=_tempPw; _tempPw=null;
+      if(await _bioAvailable()) setTimeout(()=>{ _tempPw=pw; _offerBioEnrollment(); },800);
+    }
+    return;
+  }
+
+  // 首次登录，无缓存，必须等网络
+  const ok=await loadAllData(false);
+  if(!ok) return;
   showApp();
   const t=localStorage.getItem('gl_tab');
   if(t&&['profile','circle','settings'].includes(t)) switchTab(t);
   else renderProfileTab();
-  // 登录成功后询问是否启用 Face ID（首次登录、且设备支持）
   if(_tempPw){
     const pw=_tempPw; _tempPw=null;
     if(await _bioAvailable()) setTimeout(()=>{ _tempPw=pw; _offerBioEnrollment(); },800);
