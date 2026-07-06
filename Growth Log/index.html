@@ -1085,44 +1085,63 @@ function setPct(n){
 
 // ════════════ DATA LOAD ════════════
 async function _fetchAppData(){
-  const _timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('请求超时')),15000));
-  return await Promise.race([_doFetchAppData(), _timeout]);
-}
-async function _doFetchAppData(){
-  const [{data:p},{data:ppl}]=await Promise.all([
+  // 不设超时：让 Supabase 服务有足够时间从休眠中唤醒
+  const [{data:p,error:e1},{data:ppl,error:e2}]=await Promise.all([
     _SB.from('profiles').select('*').eq('id',_user.id).maybeSingle(),
     _SB.from('people').select('id,name,birthday,relation,gender,custom_family,photo_url').eq('user_id',_user.id).order('created_at',{ascending:true})
   ]);
-  return {p,ppl};
+  // 把错误作为值返回，不抛出
+  return {p, ppl, err: e1||e2||null};
 }
 async function loadAllData(){
   document.getElementById('loadingOverlay').style.display='flex';
   setPct(20);
   let p=null,ppl=null;
-  try{
-    // 两个请求并行，加载时间减半
-    ({p,ppl}=await _fetchAppData());
-    setPct(85);
-  }catch(e){
-    // Supabase 可能正在从休眠中唤醒，3 秒后自动重试一次
-    console.warn('首次加载失败，3 秒后重试:',e);
-    setPct(30);
-    document.querySelector('#loadingOverlay .loading-text').textContent='服务启动中，请稍候…';
-    await new Promise(r=>setTimeout(r,3000));
+  let lastErr=null;
+
+  // 最多尝试 3 次，延迟递增，应对服务冷启动
+  for(let attempt=0; attempt<3; attempt++){
+    if(attempt>0){
+      const wait=[0,4000,8000][attempt];
+      document.querySelector('#loadingOverlay .loading-text').textContent=`连接中，第 ${attempt+1} 次尝试…`;
+      setPct(20+attempt*15);
+      await new Promise(r=>setTimeout(r,wait));
+    }
     try{
-      ({p,ppl}=await _fetchAppData());
-      setPct(85);
-      document.querySelector('#loadingOverlay .loading-text').textContent='加载中...';
-    }catch(e2){
-      console.error('重试仍失败:',e2);
-      document.getElementById('loadingOverlay').style.display='none';
-      toast('加载失败，请检查网络后下拉刷新重试');
-      return;
+      const res=await _fetchAppData();
+      if(res.err){
+        lastErr=res.err;
+        console.warn(`加载尝试 ${attempt+1} 失败(server error):`,res.err);
+        continue;
+      }
+      p=res.p; ppl=res.ppl;
+      lastErr=null;
+      break;
+    }catch(e){
+      lastErr=e;
+      console.warn(`加载尝试 ${attempt+1} 失败(network):`,e.message||e);
     }
   }
+
+  if(lastErr!==null && p===null){
+    // 全部失败 → 显示重试界面（不进入空 app）
+    const ol=document.getElementById('loadingOverlay');
+    ol.innerHTML=`
+      <div style="text-align:center;padding:24px 32px">
+        <div style="font-size:36px;margin-bottom:16px">⚠️</div>
+        <div style="font-size:15px;color:var(--text);margin-bottom:8px;font-weight:600">加载失败</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">可能是服务启动较慢，请稍后重试</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:24px;word-break:break-all">${(lastErr&&(lastErr.message||lastErr.code||String(lastErr)))||'网络错误'}</div>
+        <button onclick="_retryLoadAllData()" style="background:var(--accent);color:#fff;border:none;border-radius:20px;padding:10px 28px;font-size:14px;cursor:pointer">重新加载</button>
+        <div style="margin-top:12px">
+          <button onclick="_SB.auth.signOut()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline">退出重新登录</button>
+        </div>
+      </div>`;
+    return false; // 告知 _startApp 加载失败
+  }
+
   if(p) D.me={name:p.name||'',birthday:p.birthday||'',photo:p.photo_url||null,gender:p.gender||'女',selfFragments:[],_selfFragsLoaded:false};
   if(ppl){
-    // __self__ 是存自我碎片用的隐藏记录，不显示在外圈
     const selfRec=ppl.find(r=>r.relation==='__self__');
     if(selfRec) D.me.selfPersonId=selfRec.id;
     D.people=ppl.filter(r=>r.relation!=='__self__').map(r=>({
@@ -1134,10 +1153,25 @@ async function loadAllData(){
   }
   setPct(100);
   document.getElementById('loadingOverlay').style.display='none';
-  // 如果加载完 profile 仍为空，说明 token 可能已失效，强制重新登录
+  // profile 为空 → token 可能失效，强制重新登录
   if(!p && _user){
     await _SB.auth.signOut();
     setTimeout(()=>toast('登录已过期，请重新登录'),300);
+    return false;
+  }
+  return true;
+}
+async function _retryLoadAllData(){
+  // 重置 overlay
+  const ol=document.getElementById('loadingOverlay');
+  ol.style.display='flex';
+  ol.innerHTML=`<div class="loading-spinner"></div><div class="loading-text">加载中...</div><div id="loadingPct">5%</div>`;
+  const ok=await loadAllData();
+  if(ok){
+    showApp();
+    const t=localStorage.getItem('gl_tab');
+    if(t&&['profile','circle','settings'].includes(t)) switchTab(t);
+    else renderProfileTab();
   }
 }
 
@@ -3436,7 +3470,8 @@ async function _startApp(session){
   if(_appLoaded) return; // 防止 TOKEN_REFRESHED 等事件触发重复加载
   _appLoaded=true;
   _user=session.user; _userEmail=_user.email||'';
-  await loadAllData();
+  const ok=await loadAllData();
+  if(!ok) return; // 加载失败，overlay 已显示重试界面
   showApp();
   const t=localStorage.getItem('gl_tab');
   if(t&&['profile','circle','settings'].includes(t)) switchTab(t);
