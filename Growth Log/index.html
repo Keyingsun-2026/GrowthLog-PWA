@@ -398,8 +398,13 @@ input,textarea{max-width:100%;box-sizing:border-box}
 .chat-person-name{font-size:14px;font-weight:600}
 /* Chat wrap is the flex column host */
 .chat-wrap{flex:1;display:flex;flex-direction:column;min-height:0}
+/* Wrapper gives relative context for the floating ↓ button */
+.chat-msgs-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
 /* Scrollable messages area with border */
 .chat-messages{flex:1;min-height:0;overflow-y:auto;border:1.5px solid var(--border);border-radius:14px;padding:10px 8px;background:var(--bg);-webkit-overflow-scrolling:touch}
+/* Floating scroll-to-bottom FAB */
+#chatScrollFab{position:absolute;bottom:10px;right:10px;width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:16px;cursor:pointer;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.22);z-index:6;touch-action:manipulation;display:none;opacity:.88;transition:opacity .2s}
+#chatScrollFab.show{display:flex}
 .chat-row{display:flex;align-items:flex-end;gap:8px;margin-bottom:6px;padding:0 2px}
 .chat-row.user-row{flex-direction:row-reverse}
 .chat-ava{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;overflow:hidden;background:var(--warm);color:var(--warm2)}
@@ -1075,6 +1080,34 @@ async function doSignOut(){
   await _SB.auth.signOut();
   D={me:{name:'',birthday:'',photo:null,gender:'女',selfFragments:[],_selfFragsLoaded:false},people:[]};
   curTab='profile';
+}
+
+// ════════════ CHAT SCROLL HELPERS ════════════
+function _scrollChatBottom(){
+  const m=document.getElementById('chatMessages');
+  if(!m) return;
+  m.scrollTop=m.scrollHeight;
+}
+
+function _initChatScroll(){
+  // 多帧重试，解决 iOS 下 scrollHeight 计算延迟问题
+  const doScroll=()=>{
+    const m=document.getElementById('chatMessages');
+    if(!m) return;
+    m.scrollTop=m.scrollHeight;
+    // 挂 scroll 监听控制 FAB 显隐
+    const fab=document.getElementById('chatScrollFab');
+    if(!fab) return;
+    const onScroll=()=>{
+      const atBottom=m.scrollHeight-m.scrollTop-m.clientHeight<60;
+      fab.classList.toggle('show',!atBottom);
+    };
+    m.removeEventListener('scroll',m._chatScrollHandler);
+    m._chatScrollHandler=onScroll;
+    m.addEventListener('scroll',onScroll,{passive:true});
+    onScroll(); // 初始检查
+  };
+  [0,80,200,450,900].forEach(ms=>setTimeout(doScroll,ms));
 }
 
 // ════════════ LOADING PERCENTAGE ════════════
@@ -1879,9 +1912,9 @@ function renderProfileTab(){
         <div class="chat-search-bar" id="chatSearchBar">
           <input class="chat-search-input" id="chatSearchInput" type="search" placeholder="搜索消息或日期，如 6.17..." oninput="filterChat(this.value)">
         </div>
-        <div class="chat-messages" id="chatMessages">${bubbles}</div>
-        <div style="display:flex;justify-content:flex-end;flex-shrink:0;padding:2px 2px 0">
-          <button onclick="const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight" style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation;opacity:.75">↓</button>
+        <div class="chat-msgs-wrap">
+          <div class="chat-messages" id="chatMessages">${bubbles}</div>
+          <button id="chatScrollFab" onclick="_scrollChatBottom()">↓</button>
         </div>
         <div class="chat-input-bar">
           <textarea class="chat-input" id="selfImprTxt" placeholder="说说你最近的感受..." rows="2"></textarea>
@@ -1908,8 +1941,7 @@ function renderProfileTab(){
     ?`<div class="chat-tab-content">${tabContent}</div>`
     :`<div style="padding:0 15px 90px;margin-top:12px">${tabContent}</div>`);
   if(isChat){
-    const _scrollBottom=()=>{const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight;};
-    [0,100,250,500].forEach(ms=>setTimeout(_scrollBottom,ms));
+    _initChatScroll();
   }
 }
 
@@ -2357,9 +2389,9 @@ function renderPerson(){
         <div class="chat-search-bar" id="chatSearchBar">
           <input class="chat-search-input" id="chatSearchInput" type="search" placeholder="搜索消息或日期，如 6.17..." oninput="filterChat(this.value)">
         </div>
-        <div class="chat-messages" id="chatMessages">${bubbles}</div>
-        <div style="display:flex;justify-content:flex-end;flex-shrink:0;padding:2px 2px 0">
-          <button onclick="const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight" style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation;opacity:.75">↓</button>
+        <div class="chat-msgs-wrap">
+          <div class="chat-messages" id="chatMessages">${bubbles}</div>
+          <button id="chatScrollFab" onclick="_scrollChatBottom()">↓</button>
         </div>
         <div class="chat-input-bar">
           <textarea class="chat-input" id="impressionTxt" placeholder="说说你的感受..." rows="2"></textarea>
@@ -2394,14 +2426,8 @@ function renderPerson(){
   vPerson.classList.toggle('chat-mode',personTab==='feeling');
   document.getElementById('vPersonBody').innerHTML=heroHTML+tabContent;
   if(personTab==='feeling'){
-    // 重试滚底：layout 可能需要多帧才能计算出正确的 scrollHeight
-    const _scrollBottom=()=>{const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight;};
-    [0,100,250,500].forEach(ms=>setTimeout(_scrollBottom,ms));
+    _initChatScroll();
   }
-
-  // FAB 始终隐藏（用内嵌按钮代替）
-  const fab=document.querySelector('#vPerson .fab');
-  if(fab) fab.style.display='none';
 }
 
 // ════════════ MEMORIES / 人物画像 ════════════
