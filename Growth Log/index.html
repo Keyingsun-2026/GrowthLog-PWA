@@ -1084,30 +1084,48 @@ async function doSignOut(){
 
 // ════════════ CHAT SCROLL HELPERS ════════════
 function _scrollChatBottom(){
-  const m=document.getElementById('chatMessages');
+  _scrollChatToBottom(document.getElementById('chatMessages'));
+}
+
+function _scrollChatToBottom(m){
   if(!m) return;
-  m.scrollTop=m.scrollHeight;
+  // iOS -webkit-overflow-scrolling:touch 下直接设 scrollTop 有时无效
+  // 先切到 auto 再设，强制生效
+  const prev=m.style.webkitOverflowScrolling;
+  m.style.webkitOverflowScrolling='auto';
+  m.scrollTop=m.scrollHeight+9999;
+  requestAnimationFrame(()=>{
+    m.scrollTop=m.scrollHeight+9999;
+    m.style.webkitOverflowScrolling=prev;
+  });
+}
+
+function _setupChatFab(m){
+  const fab=document.getElementById('chatScrollFab');
+  if(!fab||!m) return;
+  const check=()=>{
+    const atBottom=m.scrollHeight-m.scrollTop-m.clientHeight<80;
+    fab.classList.toggle('show',!atBottom);
+  };
+  if(m._chatScrollHandler) m.removeEventListener('scroll',m._chatScrollHandler);
+  m._chatScrollHandler=check;
+  m.addEventListener('scroll',check,{passive:true});
+  check();
 }
 
 function _initChatScroll(){
-  // 多帧重试，解决 iOS 下 scrollHeight 计算延迟问题
-  const doScroll=()=>{
+  // 多次重试：0ms 挂监听，后续帧确认布局已完成再滚底并更新 FAB
+  const run=(setupFab)=>{
     const m=document.getElementById('chatMessages');
     if(!m) return;
-    m.scrollTop=m.scrollHeight;
-    // 挂 scroll 监听控制 FAB 显隐
-    const fab=document.getElementById('chatScrollFab');
-    if(!fab) return;
-    const onScroll=()=>{
-      const atBottom=m.scrollHeight-m.scrollTop-m.clientHeight<60;
-      fab.classList.toggle('show',!atBottom);
-    };
-    m.removeEventListener('scroll',m._chatScrollHandler);
-    m._chatScrollHandler=onScroll;
-    m.addEventListener('scroll',onScroll,{passive:true});
-    onScroll(); // 初始检查
+    _scrollChatToBottom(m);
+    if(setupFab) _setupChatFab(m);
   };
-  [0,80,200,450,900].forEach(ms=>setTimeout(doScroll,ms));
+  run(false);                        // 立即挂，但不做 FAB 初判
+  setTimeout(()=>run(false),100);
+  setTimeout(()=>run(true), 350);   // 布局已稳定，做 FAB 判断
+  setTimeout(()=>run(true), 800);   // 异步内容加载完后再确认一次
+  setTimeout(()=>run(true),1600);   // 兜底
 }
 
 // ════════════ LOADING PERCENTAGE ════════════
@@ -2433,6 +2451,9 @@ function renderPerson(){
   const vPerson=document.getElementById('vPerson');
   vPerson.classList.toggle('chat-mode',personTab==='feeling');
   document.getElementById('vPersonBody').innerHTML=heroHTML+tabContent;
+  // 感觉Ta 模式：隐藏全局 FAB（输入栏已有发送按钮）；其他 tab 显示
+  const mainFab=vPerson.querySelector('.fab');
+  if(mainFab) mainFab.style.display=personTab==='frags'?'':'none';
   if(personTab==='feeling'){
     _initChatScroll();
   }
