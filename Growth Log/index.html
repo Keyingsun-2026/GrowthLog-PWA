@@ -3015,32 +3015,74 @@ function renderSettingsTab(){
 }
 
 // ════════════ DATA EXPORT / CLEAR ════════════
-function exportData(){
-  const json=JSON.stringify(D,null,2);
-  const blob=new Blob([json],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download='growth_log_backup.json'; a.click();
-  URL.revokeObjectURL(url);
-  toast('备份已下载 ✦');
+async function exportData(){
+  toast('正在准备数据…');
+  try{
+    const [{data:profile},{data:people},{data:fragments}]=await Promise.all([
+      _SB.from('profiles').select('*').eq('id',_user.id).maybeSingle(),
+      _SB.from('people').select('*').eq('user_id',_user.id),
+      _SB.from('fragments').select('*').eq('user_id',_user.id)
+    ]);
+    const exportObj={
+      version:2,
+      exported_at:new Date().toISOString(),
+      email:_userEmail,
+      profile,
+      people:people||[],
+      fragments:fragments||[]
+    };
+    const blob=new Blob([JSON.stringify(exportObj,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`GrowthLog_备份_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(`备份已下载 · ${(people||[]).length}人 · ${(fragments||[]).length}条记录 ✦`);
+  }catch(e){ toast('导出失败：'+(e.message||'网络错误')); }
 }
-function importData(e){
+
+async function importData(e){
   const file=e.target.files[0]; if(!file) return;
-  const r=new FileReader();
-  r.onload=ev=>{
-    try{
-      const parsed=JSON.parse(ev.target.result);
-      if(!parsed||typeof parsed!=='object'||!Array.isArray(parsed.people)){
-        toast('文件格式不对，请选择正确的备份文件'); return;
-      }
-      D=parsed;
-      save();
-      renderProfileTab(); renderCircleTab(); renderSettingsTab();
-      toast('数据已恢复 ✦');
-    }catch(err){ toast('导入失败，文件可能已损坏'); }
-  };
-  r.readAsText(file);
   e.target.value='';
+  let data;
+  try{
+    const text=await file.text();
+    data=JSON.parse(text);
+  }catch{ toast('文件格式错误，请选择正确的备份文件'); return; }
+  if(!data.profile&&!data.people){ toast('不是有效的 GrowthLog 备份文件'); return; }
+
+  showConfirm(`导入备份（${(data.people||[]).length}人 · ${(data.fragments||[]).length}条记录）？\n导入后当前数据会被替换，无法撤销。`, async()=>{
+    toast('正在导入，请稍候…');
+    try{
+      // 1. 更新 profile
+      if(data.profile){
+        await _SB.from('profiles').upsert({...data.profile,id:_user.id});
+      }
+      // 2. 清除现有数据
+      await _SB.from('fragments').delete().eq('user_id',_user.id);
+      await _SB.from('people').delete().eq('user_id',_user.id);
+      // 3. 写入 people
+      if(data.people?.length){
+        const people=data.people.map(p=>({...p,user_id:_user.id}));
+        const {error}=await _SB.from('people').insert(people);
+        if(error) throw error;
+      }
+      // 4. 写入 fragments（分批，每批 100 条）
+      if(data.fragments?.length){
+        const frags=data.fragments.map(f=>({...f,user_id:_user.id}));
+        for(let i=0;i<frags.length;i+=100){
+          const {error}=await _SB.from('fragments').insert(frags.slice(i,i+100));
+          if(error) throw error;
+        }
+      }
+      // 5. 清缓存，重新加载
+      localStorage.removeItem('gl_data_cache');
+      const ok=await loadAllData(false);
+      if(ok){ renderProfileTab(); renderCircleTab(); renderSettingsTab(); }
+      toast('✦ 数据已全部恢复');
+    }catch(err){ toast('导入失败：'+(err.message||'未知错误')); }
+  });
 }
 async function confirmClearData(){
   // 删除 Supabase 里的所有数据
@@ -3207,40 +3249,47 @@ function pdfSelAll(val){
   renderPDFSelList();
 }
 
-function exportSelectedPDF(){
+async function exportSelectedPDF(){
   if(!pdfSelected.size){ toast('请至少选择一人'); return; }
   document.getElementById('mPdfSel').classList.remove('open');
-  // Build the selected list
   const exportMe=pdfSelected.has('__me__');
   const exportPeople=D.people.filter(p=>pdfSelected.has(p.id));
-  exportAsPDF(exportMe, exportPeople);
+  await exportAsPDF(exportMe, exportPeople);
 }
 
 // ════════════ PDF EXPORT ════════════
-function exportAsPDF(includeSelf=true, people=null){
+async function exportAsPDF(includeSelf=true, people=null){
   const exportPeople=people??D.people;
   if(!exportPeople.length && !includeSelf){ toast('没有选择任何档案'); return; }
   if((people===null) && !exportPeople.length && !D.me.name && !D.me.birthday){ toast('还没有任何档案'); return; }
+
+  // 从 Supabase 拉全量碎片（含感觉Ta对话）
+  toast('正在准备档案数据…');
+  const {data:allFrags}=await _SB.from('fragments').select('*').eq('user_id',_user.id).order('created_at',{ascending:true});
+  const fragsByPerson={};
+  (allFrags||[]).forEach(f=>{
+    if(!fragsByPerson[f.person_id]) fragsByPerson[f.person_id]=[];
+    fragsByPerson[f.person_id].push(f);
+  });
 
   function pPillar(bday){
     if(!bday) return null;
     try{ return calcPillars(bday); }catch(e){ return null; }
   }
 
-  function personHTML(p, isSelf=false){
+  function personHTML(p, isSelf=false, personFrags=[]){
     const cf=p.customFamily||false;
     const pp=pPillar(p.birthday);
     const dmIdx=pp?pp.day.stem:null;
     const dm=dmIdx!==null?DM_DATA[dmIdx]:null;
     const dmName=dm?`${STEMS[dmIdx]}${EL_NAME[ST_ELEM[dmIdx]]}`:'';
 
-    // Photo / initial
     const photoStyle=p.photo?`background:transparent`:`background:${defaultAvaBg(p.relation,cf)}`;
     const photoInner=p.photo
       ?`<img src="${p.photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover">`
       :`<span style="font-size:28px;font-weight:800;color:${defaultAvaColor(p.relation,cf)}">${p.name?p.name.charAt(0):'?'}</span>`;
 
-    // Bazi analysis block
+    // 八字分析
     let baziBlock='';
     if(dm && pp){
       const dbMain=BR_MAIN[pp.day.branch];
@@ -3264,19 +3313,13 @@ function exportAsPDF(includeSelf=true, people=null){
           <div class="pdf-tg">${TG_INNER[dbTg]||''}${genNote?`<br><span class="pdf-gen">${p.gender==='女'?'💗':'💙'} 感情倾向：${genNote}</span>`:''}</div>
         </div>
         <div class="pdf-row2">
-          <div class="pdf-tg-box">
-            <div class="pdf-tg-label">才华气场 · 月干${STEMS[pp.month.stem]}（${msTg}）</div>
-            <div class="pdf-tg">${TG_TALENT[msTg]||''}</div>
-          </div>
-          <div class="pdf-tg-box">
-            <div class="pdf-tg-label">人生底色 · 年干${STEMS[pp.year.stem]}（${ysTg}）</div>
-            <div class="pdf-tg">${TG_BG[ysTg]||''}</div>
-          </div>
+          <div class="pdf-tg-box"><div class="pdf-tg-label">才华气场 · 月干${STEMS[pp.month.stem]}（${msTg}）</div><div class="pdf-tg">${TG_TALENT[msTg]||''}</div></div>
+          <div class="pdf-tg-box"><div class="pdf-tg-label">人生底色 · 年干${STEMS[pp.year.stem]}（${ysTg}）</div><div class="pdf-tg">${TG_BG[ysTg]||''}</div></div>
         </div>
         <div class="pdf-tips">${dm.tips}</div>`;
     }
 
-    // Compat with me (skip for self-page)
+    // 合盘
     let compatBlock='';
     if(!isSelf && D.me.birthday && pp){
       const meP=pPillar(D.me.birthday);
@@ -3295,24 +3338,47 @@ function exportAsPDF(includeSelf=true, people=null){
       }
     }
 
-    // Fragments
-    const frags=p.fragments||[];
+    // 感觉Ta对话（impressions）
+    const SEP='\n⟦AI⟧\n';
+    const impressions=personFrags.filter(f=>f.type==='impression');
+    let impressionBlock='';
+    if(impressions.length){
+      impressionBlock=`<div class="pdf-section"><div class="pdf-section-title">感觉Ta · 对话记录（${impressions.length}条）</div>`
+        +impressions.map(im=>{
+          const idx=im.content.indexOf(SEP);
+          if(idx===-1){
+            return `<div class="pdf-impression"><div class="pdf-im-user">${im.content.replace(/\n/g,'<br>')}</div><div class="pdf-im-date">${im.date||''}</div></div>`;
+          }
+          const userPart=im.content.slice(0,idx).replace(/\n/g,'<br>');
+          const aiPart=im.content.slice(idx+SEP.length).replace(/\n/g,'<br>');
+          return `<div class="pdf-impression">
+            <div class="pdf-im-user">${userPart}</div>
+            <div class="pdf-im-ai"><div class="pdf-im-ai-label">AI 解读</div>${aiPart}</div>
+            <div class="pdf-im-date">${im.date||''}</div>
+          </div>`;
+        }).join('')+'</div>';
+    }
+
+    // 相处碎片
+    const frags=personFrags.filter(f=>f.type!=='impression'&&f.type!=='memory');
     let fragBlock='';
     if(frags.length){
-      fragBlock=`<div class="pdf-section"><div class="pdf-section-title">关系碎片（${frags.length}条）</div>`
+      fragBlock=`<div class="pdf-section"><div class="pdf-section-title">相处碎片（${frags.length}条）</div>`
         +frags.map(f=>{
-          const d=`<span class="pdf-frag-date">${f.date}</span>`;
-          if(f.type==='text') return `<div class="pdf-frag">${d}<div class="pdf-frag-body">${f.content.replace(/\n/g,'<br>')}</div></div>`;
-          if(f.type==='feeling') return `<div class="pdf-frag">${d}<div class="pdf-frag-body">${f.emoji||''} ${f.content||''}</div></div>`;
+          const d=`<span class="pdf-frag-date">${f.date||''}</span>`;
+          if(f.type==='text'||f.type==='feeling'){
+            const emoji=f.emoji?`<span style="font-size:15px;margin-right:4px">${f.emoji}</span>`:'';
+            return `<div class="pdf-frag">${d}<div class="pdf-frag-body">${emoji}${(f.content||'').replace(/\n/g,'<br>')}</div></div>`;
+          }
           if(f.type==='image') return `<div class="pdf-frag">${d}<img src="${f.content}" style="max-width:100%;border-radius:8px;margin-top:6px"></div>`;
           return '';
-        }).join('')+'</div>';
+        }).filter(Boolean).join('')+'</div>';
     }
 
     const relationLabel=isSelf?'我的档案':p.relation;
     return `
       <div class="pdf-page">
-        ${isSelf?'<div style="font-size:10px;font-weight:700;letter-spacing:2px;color:#C4A07A;text-transform:uppercase;margin-bottom:14px">我的档案</div>':''}
+        ${isSelf?'<div class="pdf-self-label">我的档案</div>':''}
         <div class="pdf-header">
           <div style="width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;${photoStyle}">${photoInner}</div>
           <div class="pdf-header-info">
@@ -3325,16 +3391,20 @@ function exportAsPDF(includeSelf=true, people=null){
             </div>
           </div>
         </div>
-        ${baziBlock}${compatBlock}${fragBlock}
+        ${baziBlock}${compatBlock}${impressionBlock}${fragBlock}
       </div>`;
   }
 
   const meInitial=D.me.name?D.me.name.charAt(0):'·';
   const mePhotoH=D.me.photo?`<img src="${D.me.photo}" style="width:60px;height:60px;border-radius:50%;object-fit:cover">`:`<span style="font-size:24px;font-weight:800;color:#7A9E85">${meInitial}</span>`;
 
+  // 自我碎片（__self__ person）
+  const selfPersonId=D.me.selfPersonId||null;
+  const selfFrags=selfPersonId?(fragsByPerson[selfPersonId]||[]):[];
+
   // Generate self page
   const selfPage=(includeSelf && (D.me.name||D.me.birthday))
-    ? personHTML({...D.me, relation:'我', customFamily:false, fragments:[]}, true)
+    ? personHTML({...D.me, relation:'我', customFamily:false}, true, selfFrags)
     : '';
 
   const html=`<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
@@ -3375,6 +3445,12 @@ body{font-family:-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei
 .pdf-frag{margin-bottom:8px;padding:9px 12px;background:#F8F5F0;border-radius:8px}
 .pdf-frag-date{font-size:10px;color:#aaa;display:block;margin-bottom:3px}
 .pdf-frag-body{font-size:12.5px;color:#555;line-height:1.7}
+.pdf-self-label{font-size:10px;font-weight:700;letter-spacing:2px;color:#C4A07A;text-transform:uppercase;margin-bottom:14px}
+.pdf-impression{margin-bottom:12px;border-left:3px solid #7A9E85;padding-left:10px}
+.pdf-im-user{font-size:12.5px;color:#252525;font-weight:600;line-height:1.7;margin-bottom:5px}
+.pdf-im-ai{font-size:12px;color:#555;line-height:1.75;background:#EAF2EC;border-radius:7px;padding:8px 11px;margin-bottom:4px}
+.pdf-im-ai-label{font-size:9px;font-weight:700;letter-spacing:1px;color:#7A9E85;margin-bottom:4px}
+.pdf-im-date{font-size:10px;color:#bbb}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none}}
 </style></head><body>
 <div class="pdf-cover">
@@ -3384,7 +3460,7 @@ body{font-family:-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei
   <div class="pdf-cover-count">${(includeSelf&&(D.me.name||D.me.birthday)?1:0)+exportPeople.length} 份档案 · 导出于 ${new Date().toLocaleDateString('zh-CN')}</div>
 </div>
 ${selfPage}
-${exportPeople.map(p=>personHTML(p)).join('')}
+${exportPeople.map(p=>personHTML(p,false,fragsByPerson[p.id]||[])).join('')}
 </div><!-- /appRoot -->
 </body></html>`;
 
