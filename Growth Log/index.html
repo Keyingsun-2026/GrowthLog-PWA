@@ -437,6 +437,30 @@ input,textarea{max-width:100%;box-sizing:border-box}
 .memory-content{font-size:13px;line-height:1.65;color:var(--text);padding-right:22px}
 .memory-date{font-size:11px;color:var(--muted);margin-top:4px}
 .memory-del{position:absolute;top:12px;right:0;background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;opacity:.5;touch-action:manipulation}
+/* ── Portrait / 人物画像 name card ── */
+.portrait-card-header{background:linear-gradient(160deg,var(--card) 0%,color-mix(in srgb,var(--accent) 10%,var(--card)) 100%);padding:28px 20px 22px;text-align:center;border-bottom:1px solid var(--border);margin:-16px -18px 20px}
+.portrait-photo{width:80px;height:80px;border-radius:50%;overflow:hidden;border:3px solid var(--bg);box-shadow:0 4px 16px rgba(0,0,0,.14);display:flex;align-items:center;justify-content:center;background:var(--card);margin:0 auto 12px;cursor:pointer}
+.portrait-photo img{width:100%;height:100%;object-fit:cover}
+.portrait-name{font-size:22px;font-weight:800;letter-spacing:.3px;margin-bottom:8px;color:var(--text)}
+.portrait-badges{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.portrait-dm-badge{background:var(--accent);color:#fff;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700;letter-spacing:.5px}
+.portrait-rel-badge,.portrait-gender-badge{background:transparent;color:var(--muted);border:1.5px solid var(--border);border-radius:20px;padding:3px 10px;font-size:12px}
+.portrait-bio-section{background:var(--card);border-radius:14px;padding:16px;margin-bottom:18px;border:1.5px solid var(--border)}
+.portrait-bio-empty{text-align:center}
+.portrait-bio-label{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+.portrait-bio-text{font-size:14px;line-height:1.9;color:var(--text)}
+.portrait-bio-hint{font-size:13px;color:var(--muted);line-height:1.75;margin-bottom:14px}
+.portrait-gen-btn{margin-top:14px;background:var(--accent);color:#fff;border:none;border-radius:20px;padding:10px 22px;font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation;display:block;width:100%;letter-spacing:.3px}
+.portrait-gen-btn:disabled{opacity:.4;cursor:not-allowed}
+.portrait-section-title{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.portrait-mat-count{font-size:11px;font-weight:600;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1px 8px;color:var(--muted);text-transform:none;letter-spacing:0}
+.portrait-mat-list{display:flex;flex-direction:column;gap:10px}
+.portrait-mat-item{background:var(--card);border-radius:12px;padding:12px 34px 10px 14px;border:1.5px solid var(--border);position:relative}
+.portrait-mat-text{font-size:13px;line-height:1.7;color:var(--text)}
+.portrait-mat-date{font-size:11px;color:var(--muted);margin-top:4px}
+.portrait-mat-empty{font-size:13px;color:var(--muted);text-align:center;padding:16px 0;line-height:1.8}
+.pin-sheet-divider{height:1px;background:var(--border);margin:4px 0}
+.pin-sheet-sub{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--muted);text-transform:uppercase;padding:6px 4px 0}
 .chat-empty{text-align:center;padding:32px 16px;color:var(--muted);font-size:13px;line-height:1.9}
 /* Input bar stays fixed at bottom, never scrolls */
 .chat-input-bar{flex-shrink:0;display:flex;gap:8px;align-items:flex-end;padding:8px 0 max(10px,env(safe-area-inset-bottom,0px));border-top:1px solid var(--border);margin-top:6px}
@@ -776,14 +800,18 @@ input,textarea{max-width:100%;box-sizing:border-box}
 
 <!-- ═══ PIN ACTION SHEET ═══ -->
 <div id="pinActionSheet" style="position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:450;display:none;align-items:flex-end" onclick="if(event.target===this)closePinSheet()">
-  <div style="width:100%;background:var(--card);border-radius:20px 20px 0 0;padding:14px 16px max(16px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px">
+  <div style="width:100%;background:var(--card);border-radius:20px 20px 0 0;padding:14px 16px max(18px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px">
     <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:2px">
-      <span style="font-size:12px;color:var(--muted)">选择保存内容到相处碎片</span>
+      <span style="font-size:12px;color:var(--muted)">保存内容</span>
       <button onclick="closePinSheet()" style="background:none;border:none;font-size:14px;color:var(--muted);cursor:pointer;touch-action:manipulation;padding:2px 4px">取消</button>
     </div>
-    <button onclick="_doPinSheet('user')" style="padding:13px;border-radius:12px;background:var(--bg);border:none;font-size:15px;cursor:pointer;color:var(--text);touch-action:manipulation;text-align:left">我的话</button>
-    <button onclick="_doPinSheet('ai')" style="padding:13px;border-radius:12px;background:var(--bg);border:none;font-size:15px;cursor:pointer;color:var(--text);touch-action:manipulation;text-align:left">AI 解读</button>
-    <button onclick="_doPinSheet('both')" style="padding:13px;border-radius:12px;background:var(--bg);border:none;font-size:15px;cursor:pointer;color:var(--text);touch-action:manipulation;text-align:left">两者都加</button>
+    <div class="pin-sheet-sub">加入相处碎片</div>
+    <button onclick="_doPinSheet('user')" style="padding:12px;border-radius:12px;background:var(--bg);border:none;font-size:15px;cursor:pointer;color:var(--text);touch-action:manipulation;text-align:left">我的话</button>
+    <button onclick="_doPinSheet('ai')" style="padding:12px;border-radius:12px;background:var(--bg);border:none;font-size:15px;cursor:pointer;color:var(--text);touch-action:manipulation;text-align:left">AI 解读</button>
+    <button onclick="_doPinSheet('both')" style="padding:12px;border-radius:12px;background:var(--bg);border:none;font-size:15px;cursor:pointer;color:var(--text);touch-action:manipulation;text-align:left">两者都加</button>
+    <div class="pin-sheet-divider"></div>
+    <div class="pin-sheet-sub">加入人物画像</div>
+    <button onclick="_doPinSheet('portrait')" style="padding:12px;border-radius:12px;background:color-mix(in srgb,var(--accent) 10%,var(--bg));border:1.5px solid color-mix(in srgb,var(--accent) 30%,var(--border));font-size:15px;cursor:pointer;color:var(--text);touch-action:manipulation;text-align:left">🪞 AI 解读作为画像素材</button>
   </div>
 </div>
 
@@ -1875,8 +1903,10 @@ function renderProfileTab(){
   const meInitial=me.name?`<span style="font-size:32px;font-weight:800;color:var(--accent)">${me.name.charAt(0)}</span>`:'<span style="font-size:28px;color:var(--muted)">·</span>';
   const photoH=me.photo?`<img src="${me.photo}" alt="">`:meInitial;
   const miniPhotoH=me.photo?`<img src="${me.photo}" alt="">`:(me.name?`<span style="font-size:14px;font-weight:700;color:var(--accent)">${me.name.charAt(0)}</span>`:`<span style="font-size:14px;color:var(--muted)">·</span>`);
-  const selfMems=(me.selfFragments||[]).filter(f=>f.type==='memory');
-  const memPill=`<button id="memHeroPill" onclick="openMemoriesOverlay(true)" style="background:var(--card);border:1.5px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--text);display:inline-flex;align-items:center;gap:4px;touch-action:manipulation">🪞 人物画像${selfMems.length?` ${selfMems.length}条`:''}</button>`;
+  const selfFragsAll=me.selfFragments||[];
+  const selfMems=selfFragsAll.filter(f=>f.type==='memory');
+  const selfHasBio=selfFragsAll.some(f=>f.type==='portrait_bio');
+  const memPill=`<button id="memHeroPill" onclick="openMemoriesOverlay(true)" style="background:var(--card);border:1.5px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--text);display:inline-flex;align-items:center;gap:4px;touch-action:manipulation">🪞 人物画像${selfHasBio?' ✦':selfMems.length?' '+selfMems.length+'素材':''}</button>`;
 
   const heroHTML=isCompact
     ?`<div class="chat-person-bar">
@@ -1904,10 +1934,8 @@ function renderProfileTab(){
 
   let tabContent='';
   if(profileTab==='analysis'){
-    const selfMems=(me.selfFragments||[]).filter(f=>f.type==='memory');
     tabContent=(me.birthday?buildAnalysisHTML(me.birthday,null,null,me.gender||'')
-      :`<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px">点击右上角编辑，设置生日后生成日主分析</div>`)
-      +buildMemoriesHTML(selfMems);
+      :`<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px">点击右上角编辑，设置生日后生成日主分析</div>`);
   } else if(profileTab==='feeling'){
     const impressions=(me.selfFragments||[]).filter(f=>f.type==='impression'); // 聊天顺序：旧→新
     const meAvaH=me.photo?`<img src="${me.photo}">`:(me.name?me.name.charAt(0):'我');
@@ -1948,7 +1976,7 @@ function renderProfileTab(){
         </div>
       </div>`;
   } else if(profileTab==='frags'){
-    const frags=(me.selfFragments||[]).filter(f=>f.type!=='impression'&&f.type!=='memory').slice().reverse();
+    const frags=(me.selfFragments||[]).filter(f=>f.type!=='impression'&&f.type!=='memory'&&f.type!=='portrait_bio').slice().reverse();
     let fragsBody=frags.length?frags.map(f=>{
       let inner='';
       if(f.type==='text') inner=f.emoji?`<div class="frag-bubble"><span class="feel-ico">${f.emoji}</span>${f.content?`<div class="feel-txt">${f.content.replace(/\n/g,'<br>')}</div>`:''}</div>`:_renderFragText(f.content);
@@ -2367,21 +2395,19 @@ function renderPerson(){
       <div style="margin-top:6px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap">
         <span class="rel-tag ${relCls(p.relation,cf)}">${p.relation}</span>
         ${p.gender?`<span class="gender-badge">${p.gender==='女'?'👩 女':'👨 男'}</span>`:''}
-        <button id="memHeroPill" onclick="openMemoriesOverlay(false)" style="background:var(--card);border:1.5px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--text);display:inline-flex;align-items:center;gap:4px;touch-action:manipulation">🪞 人物画像${(p.fragments||[]).filter(f=>f.type==='memory').length?' '+(p.fragments||[]).filter(f=>f.type==='memory').length+'条':''}</button>
+        <button id="memHeroPill" onclick="openMemoriesOverlay(false)" style="background:var(--card);border:1.5px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--text);display:inline-flex;align-items:center;gap:4px;touch-action:manipulation">🪞 人物画像${(p.fragments||[]).some(f=>f.type==='portrait_bio')?' ✦':(p.fragments||[]).filter(f=>f.type==='memory').length?' '+(p.fragments||[]).filter(f=>f.type==='memory').length+'素材':''}</button>
       </div>
     </div>`;
 
   const allFrags=p.fragments||[];
   const impressions=allFrags.filter(f=>f.type==='impression'); // 聊天顺序：旧→新
-  const frags=allFrags.filter(f=>f.type!=='impression'&&f.type!=='memory').slice().reverse();
+  const frags=allFrags.filter(f=>f.type!=='impression'&&f.type!=='memory'&&f.type!=='portrait_bio').slice().reverse();
 
   let tabContent='';
 
   if(personTab==='analysis'){
     const meBday=me.birthday||null;
-    const memories=(p.fragments||[]).filter(f=>f.type==='memory');
     tabContent=buildAnalysisHTML(p.birthday, meBday, p.relation, p.gender||'')
-      +buildMemoriesHTML(memories)
       +`<div class="delete-zone"><button class="delete-btn" onclick="askDelete()">🗑 删除此人的档案</button></div>`;
   }
 
@@ -2508,40 +2534,159 @@ function toggleMemories(el){
   el.nextElementSibling.classList.toggle('open');
 }
 function openMemoriesOverlay(isSelf){
-  const memories=isSelf
-    ?(D.me.selfFragments||[]).filter(f=>f.type==='memory')
-    :(curPerson?.fragments||[]).filter(f=>f.type==='memory');
+  const person=isSelf?{...D.me,relation:'我',customFamily:false}:curPerson;
+  if(!person) return;
+  const allFrags=isSelf?(D.me.selfFragments||[]):(curPerson?.fragments||[]);
+  const memories=allFrags.filter(f=>f.type==='memory');
+  const portBio=allFrags.find(f=>f.type==='portrait_bio');
   const name=isSelf?(D.me.name||'我'):(curPerson?.name||'');
-  document.getElementById('memoriesOverlayTitle').textContent=name+'的画像';
-  const body=document.getElementById('memoriesOverlayBody');
-  body.innerHTML=memories.length
-    ?memories.map(m=>`<div class="memory-item" id="mov-${m.id}">
-        <div class="memory-content">${m.content.replace(/\n/g,'<br>')}</div>
-        <div class="memory-date">${m.date}</div>
+
+  // BaZi
+  let dmIdx=null;
+  if(person.birthday){try{dmIdx=calcPillars(person.birthday).day.stem;}catch{}}
+  const dmName=dmIdx!==null?STEMS[dmIdx]+EL_NAME[ST_ELEM[dmIdx]]:'';
+
+  // Photo
+  const cf=person.customFamily||false;
+  const photoInner=person.photo
+    ?`<img src="${person.photo}">`
+    :`<span style="font-size:30px;font-weight:800;color:${defaultAvaColor(person.relation,cf)}">${personInitial(name)}</span>`;
+
+  // Bio section
+  let bioHTML='';
+  if(portBio){
+    bioHTML=`<div class="portrait-bio-section">
+      <div class="portrait-bio-label">性格描述</div>
+      <div class="portrait-bio-text">${portBio.content.replace(/\n/g,'<br>')}</div>
+      <button id="portraitGenBtn" class="portrait-gen-btn" onclick="generatePortraitBio(${isSelf})">重新生成</button>
+    </div>`;
+  } else {
+    const canGen=!!(dmName||memories.length>0);
+    const hint=memories.length>0
+      ?`已有 ${memories.length} 条画像素材，点击生成专属描述`
+      :dmName?'可根据日主性格生成基础描述，加入画像素材后更准确'
+      :'添加生日并加入画像素材后可以生成描述';
+    bioHTML=`<div class="portrait-bio-section portrait-bio-empty">
+      <div class="portrait-bio-hint">${hint}</div>
+      <button id="portraitGenBtn" class="portrait-gen-btn" onclick="generatePortraitBio(${isSelf})"${canGen?'':' disabled'}>✦ 生成描述</button>
+    </div>`;
+  }
+
+  // 画像素材 list
+  const matsHTML=memories.length
+    ?`<div class="portrait-mat-list">${memories.map(m=>`
+      <div class="portrait-mat-item" id="mov-${m.id}">
+        <div class="portrait-mat-text">${m.content.replace(/\n/g,'<br>')}</div>
+        <div class="portrait-mat-date">${m.date||''}</div>
         <button class="memory-del" onclick="delMemoryOverlay('${m.id}',${isSelf})">✕</button>
-      </div>`).join('')
-    :`<div style="text-align:center;padding:60px 20px;color:var(--muted);font-size:13px;line-height:1.9">还没有画像记录<br>在感受或碎片中点 ＋ 添加</div>`;
+      </div>`).join('')}</div>`
+    :`<div class="portrait-mat-empty">在感觉Ta对话中点 ＋<br>可将 AI 解读加入画像素材</div>`;
+
+  // Relation/gender badges (only for others)
+  const relBadge=!isSelf&&curPerson?.relation?`<span class="portrait-rel-badge">${curPerson.relation}</span>`:'';
+  const genBadge=person.gender?`<span class="portrait-gender-badge">${person.gender}</span>`:'';
+
+  document.getElementById('memoriesOverlayTitle').textContent=name+'的画像';
+  document.getElementById('memoriesOverlayBody').innerHTML=`
+    <div class="portrait-card-header">
+      <div class="portrait-photo">${photoInner}</div>
+      <div class="portrait-name">${name||'未命名'}</div>
+      <div class="portrait-badges">
+        ${dmName?`<span class="portrait-dm-badge">${dmName}</span>`:''}
+        ${relBadge}${genBadge}
+      </div>
+    </div>
+    ${bioHTML}
+    <div class="portrait-section-title">画像素材 <span class="portrait-mat-count">${memories.length} 条</span></div>
+    ${matsHTML}
+  `;
   document.getElementById('memoriesOverlay').style.transform='translateX(0)';
 }
 function closeMemoriesOverlay(){
   document.getElementById('memoriesOverlay').style.transform='translateX(100%)';
 }
+async function generatePortraitBio(isSelf){
+  const person=isSelf?D.me:curPerson;
+  if(!person) return;
+  const allFrags=isSelf?(D.me.selfFragments||[]):(curPerson?.fragments||[]);
+  const memories=allFrags.filter(f=>f.type==='memory');
+
+  const btn=document.getElementById('portraitGenBtn');
+  if(btn){btn.disabled=true;btn.textContent='生成中…';}
+
+  try{
+    let dmIdx=null;
+    if(person.birthday){try{dmIdx=calcPillars(person.birthday).day.stem;}catch{}}
+    const dmName=dmIdx!==null?STEMS[dmIdx]+EL_NAME[ST_ELEM[dmIdx]]:'';
+    const dmDesc=dmIdx!==null?DM_DATA[dmIdx].core.map(c=>`${c.t}：${c.d}`).join('；'):'';
+    const dmVibes=dmIdx!==null?DM_DATA[dmIdx].vibes.map(v=>v.t).join('、'):'';
+    const materialText=memories.length>0?memories.map((m,i)=>`[${i+1}] ${m.content}`).join('\n\n'):'';
+    const name=isSelf?(D.me.name||'我'):(curPerson?.name||'TA');
+
+    const prompt=`请为${name}写一段人物描述，用于个人档案名片。
+要求：
+- 150-220字，流畅自然，有温度，像一个了解这个人的朋友写的
+- 不要用"他/她是一个…"这样的套路开头，直接描述特质和气质
+- 结合日主信息和画像素材，体现这个人的独特之处
+- 如果没有画像素材，主要根据日主性格来描述
+- 只输出描述文字本身，不加任何标题或前缀
+
+日主：${dmName||'未知'}
+${dmDesc?`性格特质：${dmDesc}`:''}
+${dmVibes?`内心特征：${dmVibes}`:''}
+${materialText?`\n画像素材（来自对话记录，反映真实性格）：\n${materialText}`:''}`;
+
+    const ac=new AbortController(); setTimeout(()=>ac.abort(),30000);
+    const resp=await fetch(_SB_URL+'/functions/v1/deepseek-proxy',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(await _getToken()),'apikey':_SB_KEY},
+      body:JSON.stringify({messages:[{role:'user',content:prompt}]}),
+      signal:ac.signal
+    });
+    const result=await resp.json();
+    const bio=(result.content||'').trim();
+    if(!bio) throw new Error('empty response');
+
+    const pid=isSelf?await getSelfPersonId():curPerson?.id;
+    if(!pid) throw new Error('no pid');
+
+    // Replace existing portrait_bio
+    await _SB.from('fragments').delete().eq('person_id',pid).eq('type','portrait_bio');
+    const dateStr=nowStr();
+    const{data,error}=await _fragInsert({person_id:pid,user_id:_user.id,type:'portrait_bio',content:bio,emoji:'',frag_date:dateStr});
+    if(error) throw error;
+
+    const newFrag={id:data.id,type:'portrait_bio',content:bio,emoji:'',date:dateStr};
+    if(isSelf){
+      D.me.selfFragments=(D.me.selfFragments||[]).filter(f=>f.type!=='portrait_bio');
+      D.me.selfFragments.push(newFrag);
+    } else if(curPerson){
+      curPerson.fragments=(curPerson.fragments||[]).filter(f=>f.type!=='portrait_bio');
+      curPerson.fragments.push(newFrag);
+    }
+    openMemoriesOverlay(isSelf);
+    toast('✦ 画像描述已更新');
+  }catch(e){
+    console.error('generatePortraitBio',e);
+    toast('生成失败，请重试');
+    if(btn){btn.disabled=false;btn.textContent='重新生成';}
+  }
+}
 function _updateMemPillCount(isSelf){
   const pill=document.getElementById('memHeroPill');
   if(!pill) return;
-  const count=isSelf
-    ?(D.me.selfFragments||[]).filter(f=>f.type==='memory').length
-    :(curPerson?.fragments||[]).filter(f=>f.type==='memory').length;
-  pill.textContent=`🪞 人物画像${count?' '+count+'条':''}`;
+  const frags=isSelf?(D.me.selfFragments||[]):(curPerson?.fragments||[]);
+  const count=frags.filter(f=>f.type==='memory').length;
+  const hasBio=frags.some(f=>f.type==='portrait_bio');
+  pill.textContent=`🪞 人物画像${hasBio?' ✦':count?' '+count+'素材':''}`;
 }
 async function delMemoryOverlay(id,isSelf){
   const{error}=await _SB.from('fragments').delete().eq('id',id);
   if(error){toast('删除失败');return;}
   if(isSelf&&D.me.selfFragments) D.me.selfFragments=D.me.selfFragments.filter(f=>f.id!==id);
   if(!isSelf&&curPerson?.fragments) curPerson.fragments=curPerson.fragments.filter(f=>f.id!==id);
-  document.getElementById('mov-'+id)?.remove();
-  document.getElementById('mem-'+id)?.remove();
   _updateMemPillCount(isSelf);
+  openMemoriesOverlay(isSelf); // re-render name card
   toast('已删除');
 }
 // ════════════ PIN ACTION SHEET ════════════
@@ -2564,7 +2709,11 @@ async function _doPinSheet(type){
   if(!frag) return;
   const userContent=frag.content||'';
   const aiContent=(frag.emoji&&frag.emoji!=='__loading__')?frag.emoji:'';
-  if(type==='user'&&userContent) await _pinToFrag(userContent,isSelf);
+  if(type==='portrait'){
+    const content=aiContent||userContent;
+    if(!content.trim()){toast('AI 解读还未生成');return;}
+    await _pinToMemory(content,isSelf);
+  } else if(type==='user'&&userContent) await _pinToFrag(userContent,isSelf);
   else if(type==='ai'&&aiContent) await _pinToFrag(aiContent,isSelf);
   else if(type==='both'){
     if(userContent&&aiContent) await _pinToFrag(userContent+'\n⟦AI⟧\n'+aiContent,isSelf);
@@ -2572,6 +2721,20 @@ async function _doPinSheet(type){
     else if(aiContent) await _pinToFrag(aiContent,isSelf);
     else toast('内容为空');
   }
+}
+
+async function _pinToMemory(content,isSelf){
+  if(!content.trim()){toast('内容为空');return;}
+  const dateStr=nowStr();
+  const pid=isSelf?await getSelfPersonId():curPerson?.id;
+  if(!pid){toast('保存失败');return;}
+  const{data,error}=await _fragInsert({person_id:pid,user_id:_user.id,type:'memory',content:content.trim(),emoji:'',frag_date:dateStr});
+  if(error||!data){toast('保存失败');return;}
+  const frag={id:data.id,type:'memory',content:content.trim(),emoji:'',date:dateStr};
+  if(isSelf){if(!D.me.selfFragments)D.me.selfFragments=[];D.me.selfFragments.push(frag);}
+  else if(curPerson){if(!curPerson.fragments)curPerson.fragments=[];curPerson.fragments.push(frag);}
+  _updateMemPillCount(isSelf);
+  toast('已加入画像素材 🪞');
 }
 
 // 渲染 text 碎片（支持用户话＋AI解读合并格式，分隔符 ⟦AI⟧）
@@ -3338,29 +3501,8 @@ async function exportAsPDF(includeSelf=true, people=null){
       }
     }
 
-    // 感觉Ta对话（impressions）
-    const SEP='\n⟦AI⟧\n';
-    const impressions=personFrags.filter(f=>f.type==='impression');
-    let impressionBlock='';
-    if(impressions.length){
-      impressionBlock=`<div class="pdf-section"><div class="pdf-section-title">感觉Ta · 对话记录（${impressions.length}条）</div>`
-        +impressions.map(im=>{
-          const idx=im.content.indexOf(SEP);
-          if(idx===-1){
-            return `<div class="pdf-impression"><div class="pdf-im-user">${im.content.replace(/\n/g,'<br>')}</div><div class="pdf-im-date">${im.date||''}</div></div>`;
-          }
-          const userPart=im.content.slice(0,idx).replace(/\n/g,'<br>');
-          const aiPart=im.content.slice(idx+SEP.length).replace(/\n/g,'<br>');
-          return `<div class="pdf-impression">
-            <div class="pdf-im-user">${userPart}</div>
-            <div class="pdf-im-ai"><div class="pdf-im-ai-label">AI 解读</div>${aiPart}</div>
-            <div class="pdf-im-date">${im.date||''}</div>
-          </div>`;
-        }).join('')+'</div>';
-    }
-
     // 相处碎片
-    const frags=personFrags.filter(f=>f.type!=='impression'&&f.type!=='memory');
+    const frags=personFrags.filter(f=>f.type!=='impression'&&f.type!=='memory'&&f.type!=='portrait_bio');
     let fragBlock='';
     if(frags.length){
       fragBlock=`<div class="pdf-section"><div class="pdf-section-title">相处碎片（${frags.length}条）</div>`
@@ -3391,7 +3533,7 @@ async function exportAsPDF(includeSelf=true, people=null){
             </div>
           </div>
         </div>
-        ${baziBlock}${compatBlock}${impressionBlock}${fragBlock}
+        ${baziBlock}${compatBlock}${fragBlock}
       </div>`;
   }
 
@@ -3446,11 +3588,6 @@ body{font-family:-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei
 .pdf-frag-date{font-size:10px;color:#aaa;display:block;margin-bottom:3px}
 .pdf-frag-body{font-size:12.5px;color:#555;line-height:1.7}
 .pdf-self-label{font-size:10px;font-weight:700;letter-spacing:2px;color:#C4A07A;text-transform:uppercase;margin-bottom:14px}
-.pdf-impression{margin-bottom:12px;border-left:3px solid #7A9E85;padding-left:10px}
-.pdf-im-user{font-size:12.5px;color:#252525;font-weight:600;line-height:1.7;margin-bottom:5px}
-.pdf-im-ai{font-size:12px;color:#555;line-height:1.75;background:#EAF2EC;border-radius:7px;padding:8px 11px;margin-bottom:4px}
-.pdf-im-ai-label{font-size:9px;font-weight:700;letter-spacing:1px;color:#7A9E85;margin-bottom:4px}
-.pdf-im-date{font-size:10px;color:#bbb}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-print{display:none}}
 </style></head><body>
 <div class="pdf-cover">
