@@ -1940,7 +1940,7 @@ function renderProfileTab(){
     const impressions=(me.selfFragments||[]).filter(f=>f.type==='impression'); // 聊天顺序：旧→新
     const meAvaH=me.photo?`<img src="${me.photo}">`:(me.name?me.name.charAt(0):'我');
     const bubbles=!me._selfFragsLoaded
-      ?`<div class="chat-empty" style="color:var(--muted);font-size:13px">加载中...</div>`
+      ?null
       :impressions.length
         ?impressions.map(im=>`
         <div class="chat-row user-row" id="ur-${im.id}">
@@ -1961,8 +1961,9 @@ function renderProfileTab(){
           ${im.date}
         </div>`).join('')
         :`<div class="chat-empty">写下你对自己的感受或观察<br>Growth Log AI 会帮你解读 🌿</div>`;
-    tabContent=`
-      <div class="chat-wrap">
+    tabContent=bubbles===null
+      ?`<div style="flex:1;display:flex;align-items:center;justify-content:center"><div class="loading-spinner"></div></div>`
+      :`<div class="chat-wrap">
         <div class="chat-search-bar" id="chatSearchBar">
           <input class="chat-search-input" id="chatSearchInput" type="search" placeholder="搜索消息或日期，如 6.17..." oninput="filterChat(this.value)">
         </div>
@@ -2427,7 +2428,7 @@ function renderPerson(){
   else if(personTab==='feeling'){
     const meAvaH=D.me.photo?`<img src="${D.me.photo}">`:(D.me.name?D.me.name.charAt(0):'我');
     const bubbles=!curPerson._fragmentsLoaded
-      ?`<div class="chat-empty" style="color:var(--muted);font-size:13px">加载中...</div>`
+      ?null
       :impressions.length
         ?impressions.map(im=>`
         <div class="chat-row user-row" id="ur-${im.id}">
@@ -2449,8 +2450,9 @@ function renderPerson(){
         </div>`).join('')
         :`<div class="chat-empty">写下你对TA的感受<br>Growth Log AI 会帮你解读 🌿</div>`;
 
-    tabContent=`
-      <div class="chat-wrap">
+    tabContent=bubbles===null
+      ?`<div style="flex:1;display:flex;align-items:center;justify-content:center"><div class="loading-spinner"></div></div>`
+      :`<div class="chat-wrap">
         <div class="chat-search-bar" id="chatSearchBar">
           <input class="chat-search-input" id="chatSearchInput" type="search" placeholder="搜索消息或日期，如 6.17..." oninput="filterChat(this.value)">
         </div>
