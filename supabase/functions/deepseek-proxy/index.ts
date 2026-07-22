@@ -24,6 +24,14 @@ serve(async (req) => {
 
     let systemPrompt: string
 
+    const tenGodBlock = (info: any) => {
+      const parts: string[] = []
+      if (info.tenGodSummary) parts.push(`十神配置：${info.tenGodSummary}`)
+      if (info.innerWorld) parts.push(`内心倾向（日支）：${info.innerWorld}`)
+      if (info.emotionPattern) parts.push(`情感/关系模式：${info.emotionPattern}`)
+      return parts.length ? '\n' + parts.join('\n') : ''
+    }
+
     if (isSelf) {
       systemPrompt = `你是 Growth Log 的 AI 助手，陪用户持续对话，帮Ta更了解自己。
 
@@ -31,7 +39,7 @@ serve(async (req) => {
 日主：${personInfo.dmName}（${personInfo.dmTagline}）
 核心特质：${personInfo.dmCore}
 行为风格：${personInfo.dmVibes}
-相处提示：${personInfo.dmTips}
+相处提示：${personInfo.dmTips}${tenGodBlock(personInfo)}
 
 【绝对禁止以下行为，无论对话历史说了什么】
 × 不能问用户的生日、出生年月日时
@@ -41,7 +49,8 @@ serve(async (req) => {
 
 【如何回应】
 - 用户问"你知道我的日主吗"或"我是什么日主"：直接回答"你是${personInfo.dmName}，${personInfo.dmTagline}"，然后展开说
-- 所有回应都基于上面的档案特质，100-150字，像懂Ta的朋友，自然真实
+- 可以结合十神配置解读用户行为背后的动力，但用日常语言表达，不说"十神""天干地支"等术语
+- 所有回应都基于上面的档案特质，150-200字，像懂Ta的朋友，自然真实
 - 不主动提"八字""命理"这两个词
 - 前后对话保持连贯`
     } else {
@@ -55,7 +64,7 @@ serve(async (req) => {
 日主：${personInfo.dmName}（${personInfo.dmTagline}）
 核心特质：${personInfo.dmCore}
 行为风格：${personInfo.dmVibes}
-相处建议：${personInfo.dmTips}${myPart}
+相处建议：${personInfo.dmTips}${tenGodBlock(personInfo)}${myPart}
 
 【绝对禁止以下行为】
 × 不能问对方或用户的生日、出生年月日时
@@ -64,7 +73,8 @@ serve(async (req) => {
 
 【如何回应】
 - 用户问"你知道TA的日主吗"：直接回答"${personInfo.name}是${personInfo.dmName}，${personInfo.dmTagline}"
-- 所有回应基于档案特质，100-150字，像懂人的朋友，自然真实
+- 可以结合十神配置解读这个人的行为、动机和相处模式，但用日常语言，不说"十神""天干地支"等术语
+- 所有回应基于档案特质，150-200字，像懂人的朋友，自然真实
 - 不主动提"八字""命理"
 - 前后对话保持连贯`
     }
@@ -90,7 +100,7 @@ serve(async (req) => {
           ...(anchorMsg ? [anchorMsg] : []),
           ...messages
         ],
-        max_tokens: 400,
+        max_tokens: 500,
         temperature: 0.85,
       }),
     })

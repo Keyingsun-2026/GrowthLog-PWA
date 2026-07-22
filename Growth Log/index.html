@@ -2050,13 +2050,26 @@ async function saveMyImpression(){
   toast('感受已记录，AI 解读中... ✦');
   try{
     const dmIdx=D.me.birthday?calcPillars(D.me.birthday).day.stem:null;
+    // Ten-god enrichment for self
+    let tenGodSummary='', innerWorld='', emotionPattern='';
+    if(dmIdx!==null && D.me.birthday){
+      const _pp=calcPillars(D.me.birthday);
+      const _dbTg=tenGod(dmIdx, BR_MAIN[_pp.day.branch]);
+      const _msTg=tenGod(dmIdx, _pp.month.stem);
+      const _ysTg=tenGod(dmIdx, _pp.year.stem);
+      tenGodSummary=`月干${STEMS[_pp.month.stem]}（${_msTg}）、年干${STEMS[_pp.year.stem]}（${_ysTg}）、日支${BRANCHES[_pp.day.branch]}（${_dbTg}）`;
+      innerWorld=TG_INNER[_dbTg]||'';
+      const _gen=D.me.gender&&TG_INNER_GEN[_dbTg]?(D.me.gender==='女'?TG_INNER_GEN[_dbTg][0]:TG_INNER_GEN[_dbTg][1]):'';
+      emotionPattern=_gen;
+    }
     const selfInfo={
       name:D.me.name,
       dmName:dmIdx!==null?STEMS[dmIdx]+EL_NAME[ST_ELEM[dmIdx]]:'',
       dmTagline:dmIdx!==null?DM_DATA[dmIdx].tagline:'',
       dmCore:dmIdx!==null?DM_DATA[dmIdx].core.map(c=>`${c.t}：${c.d}`).join('；'):'',
       dmVibes:dmIdx!==null?DM_DATA[dmIdx].vibes.map(v=>`${v.t}（${v.d}）`).join('；'):'',
-      dmTips:dmIdx!==null?DM_DATA[dmIdx].tips:''
+      dmTips:dmIdx!==null?DM_DATA[dmIdx].tips:'',
+      tenGodSummary, innerWorld, emotionPattern
     };
     const history=_buildHistory(D.me.selfFragments, data.id);
     const _dc1=new AbortController(); setTimeout(()=>_dc1.abort(),25000);
@@ -2313,6 +2326,18 @@ async function saveImpression(){
   try{
     const dmIdx=curPerson.birthday?calcPillars(curPerson.birthday).day.stem:null;
     const meDmIdx=D.me.birthday?calcPillars(D.me.birthday).day.stem:null;
+    // Ten-god enrichment
+    let tenGodSummary='', innerWorld='', emotionPattern='';
+    if(dmIdx!==null && curPerson.birthday){
+      const _pp=calcPillars(curPerson.birthday);
+      const _dbTg=tenGod(dmIdx, BR_MAIN[_pp.day.branch]);
+      const _msTg=tenGod(dmIdx, _pp.month.stem);
+      const _ysTg=tenGod(dmIdx, _pp.year.stem);
+      tenGodSummary=`月干${STEMS[_pp.month.stem]}（${_msTg}）、年干${STEMS[_pp.year.stem]}（${_ysTg}）、日支${BRANCHES[_pp.day.branch]}（${_dbTg}）`;
+      innerWorld=TG_INNER[_dbTg]||'';
+      const _gen=curPerson.gender&&TG_INNER_GEN[_dbTg]?(curPerson.gender==='女'?TG_INNER_GEN[_dbTg][0]:TG_INNER_GEN[_dbTg][1]):'';
+      emotionPattern=_gen;
+    }
     const personInfo={
       name:curPerson.name,relation:curPerson.relation,gender:curPerson.gender||'',
       dmName:dmIdx!==null?STEMS[dmIdx]+EL_NAME[ST_ELEM[dmIdx]]:'',
@@ -2321,7 +2346,8 @@ async function saveImpression(){
       dmVibes:dmIdx!==null?DM_DATA[dmIdx].vibes.map(v=>`${v.t}（${v.d}）`).join('；'):'',
       dmTips:dmIdx!==null?DM_DATA[dmIdx].tips:'',
       myDmName:meDmIdx!==null?STEMS[meDmIdx]+EL_NAME[ST_ELEM[meDmIdx]]:'',
-      myDmTagline:meDmIdx!==null?DM_DATA[meDmIdx].tagline:''
+      myDmTagline:meDmIdx!==null?DM_DATA[meDmIdx].tagline:'',
+      tenGodSummary, innerWorld, emotionPattern
     };
     const history=_buildHistory(curPerson.fragments, data.id);
     const _dc2=new AbortController(); setTimeout(()=>_dc2.abort(),25000);
