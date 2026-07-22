@@ -1117,14 +1117,13 @@ function _scrollChatBottom(){
 
 function _scrollChatToBottom(m){
   if(!m) return;
-  // iOS -webkit-overflow-scrolling:touch 下直接设 scrollTop 有时无效
-  // 先切到 auto 再设，强制生效
-  const prev=m.style.webkitOverflowScrolling;
   m.style.webkitOverflowScrolling='auto';
-  m.scrollTop=m.scrollHeight+9999;
+  m.scrollTop=m.scrollHeight;
   requestAnimationFrame(()=>{
-    m.scrollTop=m.scrollHeight+9999;
-    m.style.webkitOverflowScrolling=prev;
+    m.scrollTop=m.scrollHeight;
+    m.style.webkitOverflowScrolling='touch';
+    // iOS backup: scrollIntoView on last element
+    m.lastElementChild?.scrollIntoView({block:'end',behavior:'instant'});
   });
 }
 
@@ -1142,18 +1141,18 @@ function _setupChatFab(m){
 }
 
 function _initChatScroll(){
-  // 多次重试：0ms 挂监听，后续帧确认布局已完成再滚底并更新 FAB
+  // 多次重试：等 flex 布局完成后滚底，FAB 判断也在布局稳定后触发
   const run=(setupFab)=>{
     const m=document.getElementById('chatMessages');
     if(!m) return;
     _scrollChatToBottom(m);
     if(setupFab) _setupChatFab(m);
   };
-  run(false);                        // 立即挂，但不做 FAB 初判
-  setTimeout(()=>run(false),100);
-  setTimeout(()=>run(true), 350);   // 布局已稳定，做 FAB 判断
-  setTimeout(()=>run(true), 800);   // 异步内容加载完后再确认一次
-  setTimeout(()=>run(true),1600);   // 兜底
+  // 不在 0ms 立即跑 — innerHTML 刚写完，浏览器还没算 scrollHeight
+  setTimeout(()=>run(false), 80);
+  setTimeout(()=>run(true),  300);  // 布局稳定，做 FAB 判断
+  setTimeout(()=>run(true),  800);  // 异步内容加载完后再确认
+  setTimeout(()=>run(true), 1800);  // 兜底
 }
 
 // ════════════ LOADING PERCENTAGE ════════════
@@ -2026,7 +2025,8 @@ async function switchProfileTab(tab){
 }
 
 async function saveMyImpression(){
-  const txt=document.getElementById('selfImprTxt')?.value.trim();
+  const inp=document.getElementById('selfImprTxt');
+  const txt=inp?.value.trim();
   if(!txt){toast('请写下你的感受');return;}
   const selfId=await getSelfPersonId();
   if(!selfId){toast('保存失败，请重试');return;}
@@ -2038,8 +2038,16 @@ async function saveMyImpression(){
   if(error||!data){toast('保存失败');return;}
   if(!D.me.selfFragments) D.me.selfFragments=[];
   D.me.selfFragments.push({id:data.id,type:'impression',content:txt,emoji:'__loading__',date:dateStr});
-  document.getElementById('selfImprTxt').value='';
-  renderProfileTab();
+  if(inp) inp.value='';
+
+  // Append to existing DOM — no full re-render (avoids scroll-to-top)
+  const chatMsgs=document.getElementById('chatMessages');
+  if(chatMsgs){
+    chatMsgs.querySelector('.chat-empty')?.remove();
+    const meAvaH=D.me.photo?`<img src="${D.me.photo}">`:(D.me.name?D.me.name.charAt(0):'我');
+    chatMsgs.insertAdjacentHTML('beforeend',`<div class="chat-row user-row" id="ur-${data.id}"><div class="chat-ava">${meAvaH}</div><div class="chat-bubble user-bubble">${txt.replace(/\n/g,'<br>')}</div></div><div class="chat-row" id="ar-${data.id}"><div class="chat-ava ai-ava">🌿</div><div class="chat-bubble ai-bubble" id="impr-resp-${data.id}"><span style="color:var(--muted);font-size:13px">解读中...</span></div><button class="chat-del-btn" onclick="delMyImpression('${data.id}')">✕</button></div><div class="chat-date-row" id="dr-${data.id}"><button class="mem-pin-btn" onclick="showPinSheet('${data.id}',true)">＋</button>${dateStr}</div>`);
+    _scrollChatBottom();
+  }
   toast('感受已记录，AI 解读中... ✦');
   try{
     const dmIdx=D.me.birthday?calcPillars(D.me.birthday).day.stem:null;
@@ -2065,7 +2073,7 @@ async function saveMyImpression(){
     const frag=D.me.selfFragments.find(f=>f.id===data.id);
     if(frag) frag.emoji=aiReply;
     const el=document.getElementById('impr-resp-'+data.id);
-    if(el) el.innerHTML=aiReply;
+    if(el){el.innerHTML=aiReply;_scrollChatBottom();}
   }catch(e){
     const frag=D.me.selfFragments.find(f=>f.id===data.id);
     if(frag) frag.emoji='';
@@ -2282,7 +2290,8 @@ function _buildHistory(fragments, excludeId){
 
 async function saveImpression(){
   if(!curPerson) return;
-  const txt=document.getElementById('impressionTxt').value.trim();
+  const inp=document.getElementById('impressionTxt');
+  const txt=inp?.value.trim();
   if(!txt){toast('请写下你的感受');return;}
   const dateStr=nowStr();
   const{data,error}=await _fragInsert({
@@ -2292,23 +2301,26 @@ async function saveImpression(){
   if(error||!data){toast('保存失败');return;}
   if(!curPerson.fragments) curPerson.fragments=[];
   curPerson.fragments.push({id:data.id,type:'impression',content:txt,emoji:'__loading__',date:dateStr});
-  document.getElementById('impressionTxt').value='';
-  renderPerson();
-  // 滚到底部（renderPerson 内也会触发，此处保险再触发一次）
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{const m=document.getElementById('chatMessages');if(m)m.scrollTop=m.scrollHeight;}));
+  if(inp) inp.value='';
 
+  // Append to existing DOM — no full re-render (avoids scroll-to-top)
+  const chatMsgs=document.getElementById('chatMessages');
+  if(chatMsgs){
+    chatMsgs.querySelector('.chat-empty')?.remove();
+    const meAvaH=D.me.photo?`<img src="${D.me.photo}">`:(D.me.name?D.me.name.charAt(0):'我');
+    chatMsgs.insertAdjacentHTML('beforeend',`<div class="chat-row user-row" id="ur-${data.id}"><div class="chat-ava">${meAvaH}</div><div class="chat-bubble user-bubble">${txt.replace(/\n/g,'<br>')}</div></div><div class="chat-row" id="ar-${data.id}"><div class="chat-ava ai-ava">🌿</div><div class="chat-bubble ai-bubble" id="impr-resp-${data.id}"><span style="color:var(--muted);font-size:13px">解读中...</span></div><button class="chat-del-btn" onclick="delImpression('${data.id}')">✕</button></div><div class="chat-date-row" id="dr-${data.id}"><button class="mem-pin-btn" onclick="showPinSheet('${data.id}',false)">＋</button>${dateStr}</div>`);
+    _scrollChatBottom();
+  }
   try{
     const dmIdx=curPerson.birthday?calcPillars(curPerson.birthday).day.stem:null;
     const meDmIdx=D.me.birthday?calcPillars(D.me.birthday).day.stem:null;
     const personInfo={
       name:curPerson.name,relation:curPerson.relation,gender:curPerson.gender||'',
-      // TA 的日主（完整版）
       dmName:dmIdx!==null?STEMS[dmIdx]+EL_NAME[ST_ELEM[dmIdx]]:'',
       dmTagline:dmIdx!==null?DM_DATA[dmIdx].tagline:'',
       dmCore:dmIdx!==null?DM_DATA[dmIdx].core.map(c=>`${c.t}：${c.d}`).join('；'):'',
       dmVibes:dmIdx!==null?DM_DATA[dmIdx].vibes.map(v=>`${v.t}（${v.d}）`).join('；'):'',
       dmTips:dmIdx!==null?DM_DATA[dmIdx].tips:'',
-      // 我的日主（用于关系视角对照）
       myDmName:meDmIdx!==null?STEMS[meDmIdx]+EL_NAME[ST_ELEM[meDmIdx]]:'',
       myDmTagline:meDmIdx!==null?DM_DATA[meDmIdx].tagline:''
     };
@@ -2326,7 +2338,7 @@ async function saveImpression(){
     const frag=curPerson.fragments.find(f=>f.id===data.id);
     if(frag) frag.emoji=aiReply;
     const el=document.getElementById('impr-resp-'+data.id);
-    if(el) el.innerHTML=aiReply;
+    if(el){el.innerHTML=aiReply;_scrollChatBottom();}
   }catch(e){
     const dmIdx=curPerson.birthday?calcPillars(curPerson.birthday).day.stem:null;
     const frag=curPerson.fragments.find(f=>f.id===data.id);
