@@ -415,6 +415,8 @@ input,textarea{max-width:100%;box-sizing:border-box}
 .user-bubble{background:var(--accent);color:#fff;border-radius:16px 16px 4px 16px}
 .ai-bubble{background:var(--card);color:var(--text);border-radius:16px 16px 16px 4px;border:1px solid var(--border)}
 .chat-date-row{display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;color:var(--muted);margin:2px 0 10px}
+.chat-day-sep{display:flex;align-items:center;gap:10px;margin:18px 0 12px;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.3px}
+.chat-day-sep::before,.chat-day-sep::after{content:'';flex:1;height:1px;background:var(--border)}
 .chat-del-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;padding:2px 4px;flex-shrink:0;align-self:flex-start;margin-top:2px;opacity:.5;touch-action:manipulation}
 /* 搜索 */
 .chat-search-btn{background:none;border:none;cursor:pointer;font-size:15px;flex-shrink:0;touch-action:manipulation;padding:2px 4px;color:var(--muted);margin-left:auto}
@@ -1939,7 +1941,11 @@ function renderProfileTab(){
     const bubbles=!me._selfFragsLoaded
       ?null
       :impressions.length
-        ?impressions.map(im=>`
+        ?(()=>{let _ld='';return impressions.map(im=>{
+          const _d=im.date?im.date.split(' ')[0]:'';
+          const _sep=(_d&&_d!==_ld)?`<div class="chat-day-sep">${_d}</div>`:'';
+          _ld=_d;
+          return _sep+`
         <div class="chat-row user-row" id="ur-${im.id}">
           <div class="chat-ava">${meAvaH}</div>
           <div class="chat-bubble user-bubble">${im.content.replace(/\n/g,'<br>')}</div>
@@ -1956,7 +1962,7 @@ function renderProfileTab(){
         <div class="chat-date-row" id="dr-${im.id}">
           <button class="mem-pin-btn" onclick="showPinSheet('${im.id}',true)" title="保存到相处碎片">＋</button>
           ${im.date}
-        </div>`).join('')
+        </div>`;}).join('');})()
         :`<div class="chat-empty">写下你对自己的感受或观察<br>Growth Log AI 会帮你解读 🌿</div>`;
     tabContent=bubbles===null
       ?`<div style="flex:1;display:flex;align-items:center;justify-content:center"><div class="loading-spinner"></div></div>`
@@ -2453,7 +2459,11 @@ function renderPerson(){
     const bubbles=!curPerson._fragmentsLoaded
       ?null
       :impressions.length
-        ?impressions.map(im=>`
+        ?(()=>{let _ld='';return impressions.map(im=>{
+          const _d=im.date?im.date.split(' ')[0]:'';
+          const _sep=(_d&&_d!==_ld)?`<div class="chat-day-sep">${_d}</div>`:'';
+          _ld=_d;
+          return _sep+`
         <div class="chat-row user-row" id="ur-${im.id}">
           <div class="chat-ava">${meAvaH}</div>
           <div class="chat-bubble user-bubble">${im.content.replace(/\n/g,'<br>')}</div>
@@ -2470,7 +2480,7 @@ function renderPerson(){
         <div class="chat-date-row" id="dr-${im.id}">
           <button class="mem-pin-btn" onclick="showPinSheet('${im.id}',false)" title="保存到相处碎片">＋</button>
           ${im.date}
-        </div>`).join('')
+        </div>`;}).join('');})()
         :`<div class="chat-empty">写下你对TA的感受<br>Growth Log AI 会帮你解读 🌿</div>`;
 
     tabContent=bubbles===null
