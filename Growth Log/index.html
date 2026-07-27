@@ -402,7 +402,7 @@ input,textarea{max-width:100%;box-sizing:border-box}
 /* Wrapper gives relative context for the floating ↓ button */
 .chat-msgs-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
 /* Scrollable messages area with border */
-.chat-messages{flex:1;min-height:0;overflow-y:auto;border:1.5px solid var(--border);border-radius:14px;padding:10px 8px;background:var(--bg)}
+.chat-messages{flex:1;min-height:0;overflow-y:auto;border:1.5px solid var(--border);border-radius:14px;padding:10px 8px;background:var(--bg);overflow-anchor:none}
 /* Floating scroll-to-bottom FAB */
 #chatScrollFab{position:absolute;bottom:10px;right:10px;width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:16px;cursor:pointer;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.22);z-index:6;touch-action:manipulation;display:none;opacity:.88;transition:opacity .2s}
 #chatScrollFab.show{display:flex}
@@ -1120,10 +1120,18 @@ function _scrollChatBottom(){
 
 function _scrollChatToBottom(m){
   if(!m) return;
-  m.scrollTop=m.scrollHeight;
+  // Only assign scrollTop when content actually overflows (iOS ignores it otherwise)
+  const sh=m.scrollHeight, ch=m.clientHeight;
+  if(sh<=ch) return;
+  m.scrollTop=sh;
+  // Verify it stuck — iOS sometimes resets scrollTop silently
   requestAnimationFrame(()=>{
-    m.scrollTop=m.scrollHeight;
-    requestAnimationFrame(()=>{ m.scrollTop=m.scrollHeight; });
+    const sh2=m.scrollHeight;
+    if(sh2>m.clientHeight) m.scrollTop=sh2;
+    requestAnimationFrame(()=>{
+      const sh3=m.scrollHeight;
+      if(sh3>m.clientHeight) m.scrollTop=sh3;
+    });
   });
 }
 
@@ -1131,8 +1139,9 @@ function _setupChatFab(m){
   const fab=document.getElementById('chatScrollFab');
   if(!fab||!m) return;
   const check=()=>{
-    const atBottom=m.scrollHeight-m.scrollTop-m.clientHeight<80;
-    fab.classList.toggle('show',!atBottom);
+    const overflow=m.scrollHeight-m.clientHeight;
+    if(overflow<10) return; // Layout not ready or content fits — don't change FAB state
+    fab.classList.toggle('show', overflow-m.scrollTop>80);
   };
   if(m._chatScrollHandler) m.removeEventListener('scroll',m._chatScrollHandler);
   m._chatScrollHandler=check;
@@ -1141,18 +1150,32 @@ function _setupChatFab(m){
 }
 
 function _initChatScroll(){
-  // 多次重试：等 flex 布局完成后滚底，FAB 判断也在布局稳定后触发
-  const run=(setupFab)=>{
-    const m=document.getElementById('chatMessages');
-    if(!m) return;
+  const m=document.getElementById('chatMessages');
+  if(!m) return;
+
+  let settled=false;
+  const doAll=()=>{
     _scrollChatToBottom(m);
-    if(setupFab) _setupChatFab(m);
+    _setupChatFab(m);
+    if(m.scrollHeight>m.clientHeight+10) settled=true;
   };
-  // 不在 0ms 立即跑 — innerHTML 刚写完，浏览器还没算 scrollHeight
-  setTimeout(()=>run(false), 80);
-  setTimeout(()=>run(true),  300);  // 布局稳定，做 FAB 判断
-  setTimeout(()=>run(true),  800);  // 异步内容加载完后再确认
-  setTimeout(()=>run(true), 1800);  // 兜底
+
+  doAll();
+
+  // ResizeObserver fires when flex layout is actually computed — much more reliable than setTimeout
+  if(window.ResizeObserver){
+    const ro=new ResizeObserver(()=>{
+      doAll();
+      if(settled){ ro.disconnect(); }
+    });
+    ro.observe(m);
+    setTimeout(()=>ro.disconnect(), 4000); // safety disconnect
+  }
+
+  // Fallback for edge cases
+  setTimeout(doAll, 150);
+  setTimeout(doAll, 500);
+  setTimeout(doAll, 1200);
 }
 
 // ════════════ LOADING PERCENTAGE ════════════
