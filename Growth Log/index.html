@@ -403,11 +403,9 @@ input,textarea{max-width:100%;box-sizing:border-box}
 .chat-msgs-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
 /* Scrollable messages area with border */
 .chat-messages{flex:1;min-height:0;overflow-y:auto;border:1.5px solid var(--border);border-radius:14px;padding:10px 8px;background:var(--bg);overflow-anchor:none;display:flex;flex-direction:column-reverse}
-/* Floating scroll FABs */
-#chatScrollFab,#chatScrollUp{position:absolute;right:10px;width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:16px;cursor:pointer;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.22);z-index:6;touch-action:manipulation;display:none;opacity:.88;transition:opacity .2s}
-#chatScrollFab{bottom:10px}
-#chatScrollUp{top:10px}
-#chatScrollFab.show,#chatScrollUp.show{display:flex}
+/* Floating scroll FAB */
+#chatScrollFab{position:absolute;bottom:10px;left:10px;width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:16px;cursor:pointer;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.22);z-index:6;touch-action:manipulation;display:none;opacity:.88;transition:opacity .2s}
+#chatScrollFab.show{display:flex}
 .chat-row{display:flex;align-items:flex-end;gap:8px;margin-bottom:6px;padding:0 2px}
 .chat-row.user-row{flex-direction:row-reverse}
 .chat-ava{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;overflow:hidden;background:var(--warm);color:var(--warm2)}
@@ -1125,21 +1123,10 @@ function _scrollChatToBottom(m){
   if(m) m.scrollTop=0; // column-reverse: 0 = bottom
 }
 
-function _scrollChatUp(){
-  const m=document.getElementById('chatMessages');
-  if(!m) return;
-  m.scrollBy({top: m.clientHeight*0.8, behavior:'smooth'});
-}
-
 function _setupChatFab(m){
   const fab=document.getElementById('chatScrollFab');
-  const upBtn=document.getElementById('chatScrollUp');
-  if(!m) return;
-  const check=()=>{
-    const max=m.scrollHeight-m.clientHeight;
-    if(fab) fab.classList.toggle('show', m.scrollTop>80);
-    if(upBtn) upBtn.classList.toggle('show', max>80 && m.scrollTop<max-80);
-  };
+  if(!fab||!m) return;
+  const check=()=>{ fab.classList.toggle('show', m.scrollTop>80); };
   if(m._chatScrollHandler) m.removeEventListener('scroll',m._chatScrollHandler);
   m._chatScrollHandler=check;
   m.addEventListener('scroll',check,{passive:true});
@@ -1972,7 +1959,6 @@ function renderProfileTab(){
         <div class="chat-msgs-wrap">
           <div class="chat-messages" id="chatMessages">${bubbles}</div>
           <button id="chatScrollFab" onclick="_scrollChatBottom()">↓</button>
-          <button id="chatScrollUp" onclick="_scrollChatUp()">↑</button>
         </div>
         <div class="chat-input-bar">
           <textarea class="chat-input" id="selfImprTxt" placeholder="说说你最近的感受..." rows="2"></textarea>
@@ -2492,7 +2478,6 @@ function renderPerson(){
         <div class="chat-msgs-wrap">
           <div class="chat-messages" id="chatMessages">${bubbles}</div>
           <button id="chatScrollFab" onclick="_scrollChatBottom()">↓</button>
-          <button id="chatScrollUp" onclick="_scrollChatUp()">↑</button>
         </div>
         <div class="chat-input-bar">
           <textarea class="chat-input" id="impressionTxt" placeholder="说说你的感受..." rows="2"></textarea>
