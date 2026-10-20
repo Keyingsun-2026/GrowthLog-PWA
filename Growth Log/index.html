@@ -402,7 +402,7 @@ input,textarea{max-width:100%;box-sizing:border-box}
 /* Wrapper gives relative context for the floating ↓ button */
 .chat-msgs-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
 /* Scrollable messages area with border */
-.chat-messages{flex:1;min-height:0;overflow-y:auto;border:1.5px solid var(--border);border-radius:14px;padding:10px 8px;background:var(--bg);overflow-anchor:none}
+.chat-messages{flex:1;min-height:0;overflow-y:auto;border:1.5px solid var(--border);border-radius:14px;padding:10px 8px;background:var(--bg);overflow-anchor:none;display:flex;flex-direction:column-reverse}
 /* Floating scroll-to-bottom FAB */
 #chatScrollFab{position:absolute;bottom:10px;right:10px;width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:16px;cursor:pointer;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.22);z-index:6;touch-action:manipulation;display:none;opacity:.88;transition:opacity .2s}
 #chatScrollFab.show{display:flex}
@@ -1115,34 +1115,19 @@ async function doSignOut(){
 
 // ════════════ CHAT SCROLL HELPERS ════════════
 function _scrollChatBottom(){
-  _scrollChatToBottom(document.getElementById('chatMessages'));
+  const m=document.getElementById('chatMessages');
+  if(m) m.scrollTop=0; // column-reverse: 0 = newest messages (bottom)
 }
 
 function _scrollChatToBottom(m){
-  if(!m) return;
-  // Only assign scrollTop when content actually overflows (iOS ignores it otherwise)
-  const sh=m.scrollHeight, ch=m.clientHeight;
-  if(sh<=ch) return;
-  m.scrollTop=sh;
-  // Verify it stuck — iOS sometimes resets scrollTop silently
-  requestAnimationFrame(()=>{
-    const sh2=m.scrollHeight;
-    if(sh2>m.clientHeight) m.scrollTop=sh2;
-    requestAnimationFrame(()=>{
-      const sh3=m.scrollHeight;
-      if(sh3>m.clientHeight) m.scrollTop=sh3;
-    });
-  });
+  if(m) m.scrollTop=0; // column-reverse: 0 = bottom
 }
 
 function _setupChatFab(m){
   const fab=document.getElementById('chatScrollFab');
   if(!fab||!m) return;
-  const check=()=>{
-    const overflow=m.scrollHeight-m.clientHeight;
-    if(overflow<10) return; // Layout not ready or content fits — don't change FAB state
-    fab.classList.toggle('show', overflow-m.scrollTop>80);
-  };
+  // column-reverse: scrollTop=0 is bottom; scrollTop>0 means user scrolled up to older messages
+  const check=()=>{ fab.classList.toggle('show', m.scrollTop>80); };
   if(m._chatScrollHandler) m.removeEventListener('scroll',m._chatScrollHandler);
   m._chatScrollHandler=check;
   m.addEventListener('scroll',check,{passive:true});
@@ -1150,32 +1135,11 @@ function _setupChatFab(m){
 }
 
 function _initChatScroll(){
+  // column-reverse: no JS scroll needed — CSS naturally starts at bottom (newest)
   const m=document.getElementById('chatMessages');
   if(!m) return;
-
-  let settled=false;
-  const doAll=()=>{
-    _scrollChatToBottom(m);
-    _setupChatFab(m);
-    if(m.scrollHeight>m.clientHeight+10) settled=true;
-  };
-
-  doAll();
-
-  // ResizeObserver fires when flex layout is actually computed — much more reliable than setTimeout
-  if(window.ResizeObserver){
-    const ro=new ResizeObserver(()=>{
-      doAll();
-      if(settled){ ro.disconnect(); }
-    });
-    ro.observe(m);
-    setTimeout(()=>ro.disconnect(), 4000); // safety disconnect
-  }
-
-  // Fallback for edge cases
-  setTimeout(doAll, 150);
-  setTimeout(doAll, 500);
-  setTimeout(doAll, 1200);
+  setTimeout(()=>_setupChatFab(m), 50);
+  setTimeout(()=>_setupChatFab(m), 300);
 }
 
 // ════════════ LOADING PERCENTAGE ════════════
@@ -1964,11 +1928,11 @@ function renderProfileTab(){
     const bubbles=!me._selfFragsLoaded
       ?null
       :impressions.length
-        ?(()=>{let _ld='';return impressions.map(im=>{
+        ?(()=>{const _rev=[...impressions].reverse();return _rev.map((im,i)=>{
           const _d=im.date?im.date.split(' ')[0]:'';
-          const _sep=(_d&&_d!==_ld)?`<div class="chat-day-sep">${_d}</div>`:'';
-          _ld=_d;
-          return _sep+`
+          const _nd=(_rev[i+1]?.date||'').split(' ')[0];
+          const _sep=(_d&&(!_rev[i+1]||_d!==_nd))?`<div class="chat-day-sep">${_d}</div>`:'';
+          return `<div class="chat-group" id="g-${im.id}">
         <div class="chat-row user-row" id="ur-${im.id}">
           <div class="chat-ava">${meAvaH}</div>
           <div class="chat-bubble user-bubble">${im.content.replace(/\n/g,'<br>')}</div>
@@ -1985,7 +1949,7 @@ function renderProfileTab(){
         <div class="chat-date-row" id="dr-${im.id}">
           <button class="mem-pin-btn" onclick="showPinSheet('${im.id}',true)" title="保存到相处碎片">＋</button>
           ${im.date}
-        </div>`;}).join('');})()
+        </div></div>${_sep}`;}).join('');})()
         :`<div class="chat-empty">写下你对自己的感受或观察<br>Growth Log AI 会帮你解读 🌿</div>`;
     tabContent=bubbles===null
       ?`<div style="flex:1;display:flex;align-items:center;justify-content:center"><div class="loading-spinner"></div></div>`
@@ -2073,7 +2037,7 @@ async function saveMyImpression(){
   if(chatMsgs){
     chatMsgs.querySelector('.chat-empty')?.remove();
     const meAvaH=D.me.photo?`<img src="${D.me.photo}">`:(D.me.name?D.me.name.charAt(0):'我');
-    chatMsgs.insertAdjacentHTML('beforeend',`<div class="chat-row user-row" id="ur-${data.id}"><div class="chat-ava">${meAvaH}</div><div class="chat-bubble user-bubble">${txt.replace(/\n/g,'<br>')}</div></div><div class="chat-row" id="ar-${data.id}"><div class="chat-ava ai-ava">🌿</div><div class="chat-bubble ai-bubble" id="impr-resp-${data.id}"><span style="color:var(--muted);font-size:13px">解读中...</span></div><button class="chat-del-btn" onclick="delMyImpression('${data.id}')">✕</button></div><div class="chat-date-row" id="dr-${data.id}"><button class="mem-pin-btn" onclick="showPinSheet('${data.id}',true)">＋</button>${dateStr}</div>`);
+    chatMsgs.insertAdjacentHTML('afterbegin',`<div class="chat-group" id="g-${data.id}"><div class="chat-row user-row" id="ur-${data.id}"><div class="chat-ava">${meAvaH}</div><div class="chat-bubble user-bubble">${txt.replace(/\n/g,'<br>')}</div></div><div class="chat-row" id="ar-${data.id}"><div class="chat-ava ai-ava">🌿</div><div class="chat-bubble ai-bubble" id="impr-resp-${data.id}"><span style="color:var(--muted);font-size:13px">解读中...</span></div><button class="chat-del-btn" onclick="delMyImpression('${data.id}')">✕</button></div><div class="chat-date-row" id="dr-${data.id}"><button class="mem-pin-btn" onclick="showPinSheet('${data.id}',true)">＋</button>${dateStr}</div></div>`);
     _scrollChatBottom();
   }
   toast('感受已记录，AI 解读中... ✦');
@@ -2349,7 +2313,7 @@ async function saveImpression(){
   if(chatMsgs){
     chatMsgs.querySelector('.chat-empty')?.remove();
     const meAvaH=D.me.photo?`<img src="${D.me.photo}">`:(D.me.name?D.me.name.charAt(0):'我');
-    chatMsgs.insertAdjacentHTML('beforeend',`<div class="chat-row user-row" id="ur-${data.id}"><div class="chat-ava">${meAvaH}</div><div class="chat-bubble user-bubble">${txt.replace(/\n/g,'<br>')}</div></div><div class="chat-row" id="ar-${data.id}"><div class="chat-ava ai-ava">🌿</div><div class="chat-bubble ai-bubble" id="impr-resp-${data.id}"><span style="color:var(--muted);font-size:13px">解读中...</span></div><button class="chat-del-btn" onclick="delImpression('${data.id}')">✕</button></div><div class="chat-date-row" id="dr-${data.id}"><button class="mem-pin-btn" onclick="showPinSheet('${data.id}',false)">＋</button>${dateStr}</div>`);
+    chatMsgs.insertAdjacentHTML('afterbegin',`<div class="chat-group" id="g-${data.id}"><div class="chat-row user-row" id="ur-${data.id}"><div class="chat-ava">${meAvaH}</div><div class="chat-bubble user-bubble">${txt.replace(/\n/g,'<br>')}</div></div><div class="chat-row" id="ar-${data.id}"><div class="chat-ava ai-ava">🌿</div><div class="chat-bubble ai-bubble" id="impr-resp-${data.id}"><span style="color:var(--muted);font-size:13px">解读中...</span></div><button class="chat-del-btn" onclick="delImpression('${data.id}')">✕</button></div><div class="chat-date-row" id="dr-${data.id}"><button class="mem-pin-btn" onclick="showPinSheet('${data.id}',false)">＋</button>${dateStr}</div></div>`);
     _scrollChatBottom();
   }
   try{
@@ -2482,11 +2446,11 @@ function renderPerson(){
     const bubbles=!curPerson._fragmentsLoaded
       ?null
       :impressions.length
-        ?(()=>{let _ld='';return impressions.map(im=>{
+        ?(()=>{const _rev=[...impressions].reverse();return _rev.map((im,i)=>{
           const _d=im.date?im.date.split(' ')[0]:'';
-          const _sep=(_d&&_d!==_ld)?`<div class="chat-day-sep">${_d}</div>`:'';
-          _ld=_d;
-          return _sep+`
+          const _nd=(_rev[i+1]?.date||'').split(' ')[0];
+          const _sep=(_d&&(!_rev[i+1]||_d!==_nd))?`<div class="chat-day-sep">${_d}</div>`:'';
+          return `<div class="chat-group" id="g-${im.id}">
         <div class="chat-row user-row" id="ur-${im.id}">
           <div class="chat-ava">${meAvaH}</div>
           <div class="chat-bubble user-bubble">${im.content.replace(/\n/g,'<br>')}</div>
@@ -2503,7 +2467,7 @@ function renderPerson(){
         <div class="chat-date-row" id="dr-${im.id}">
           <button class="mem-pin-btn" onclick="showPinSheet('${im.id}',false)" title="保存到相处碎片">＋</button>
           ${im.date}
-        </div>`;}).join('');})()
+        </div></div>${_sep}`;}).join('');})()
         :`<div class="chat-empty">写下你对TA的感受<br>Growth Log AI 会帮你解读 🌿</div>`;
 
     tabContent=bubbles===null
@@ -2593,10 +2557,8 @@ function filterChat(query){
     const matches=!q
       ||(bubble&&bubble.textContent.toLowerCase().includes(q))
       ||(dateEl&&dateEl.textContent.toLowerCase().includes(q));
-    ['ur-','ar-','dr-'].forEach(pre=>{
-      const el=document.getElementById(pre+id);
-      if(el) el.style.display=matches?'':'none';
-    });
+    const group=document.getElementById('g-'+id);
+    if(group) group.style.display=matches?'':'none';
   });
 }
 
